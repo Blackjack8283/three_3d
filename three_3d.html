@@ -157,6 +157,7 @@ let state = "closed";
     });
 }
 
+
 let pre_elem_name;
 function pre_click(x,y){
     const mouse = new THREE.Vector2();
@@ -186,8 +187,49 @@ function click(x,y) {
         } else if(obj.name != undefined){
             if(Number(state) <= Number(obj.name)) state = String(Number(obj.name) + 1);
             else state = obj.name;
+        } else if(obj.name == undefined){ //テスト用分岐　カメラ回転関数へ
+            camera_turn(bump[0].point, camera.position);
         }
     }
+}
+
+//カメラ回転関数
+let turn_flag = false;
+let turn_info = {ahv: undefined, oav: undefined ,theta: undefined, size: undefined}; //acv, ahv, theta
+function camera_turn(oav, ocv){ //目標v, カメラv
+    // console.log(oav,ocv);
+    let acv = ocv.clone().sub(oav);
+    const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
+    let ahv = ohv.clone().sub(oav);
+    const cos_theta = (ahv.clone().normalize())
+                        .dot(acv.clone().normalize());
+    let theta = Math.acos(cos_theta); //ラジアンじゃ
+    const size = acv.clone().length();
+    if(oav.y > ocv.y) theta *= -1;
+    ahv.normalize();
+
+    turn_flag = true;
+    turn_info = {ahv: ahv, oav: oav, theta: theta, size: size};
+}
+
+function move_camera(){
+    if(!turn_flag) return;
+    // console.log(ahv,theta);
+    //theta変更
+    const diff = ease_diff(turn_info.theta, Math.PI*0.25, 0.005);
+    if(diff == 0){
+        turn_flag = false;
+        return;
+    }
+    turn_info.theta += diff;
+
+    //計算
+    const yv = new THREE.Vector3(0,1,0)
+                .multiplyScalar(Math.sin(turn_info.theta));
+    const xzv = turn_info.ahv.clone()
+                .multiplyScalar(Math.cos(turn_info.theta));
+    const anv = yv.add(xzv).multiplyScalar(turn_info.size);
+    camera.position.copy( anv.add(turn_info.oav) );
 }
 
 const speed = 0.1;
@@ -195,7 +237,7 @@ function move_groups(){
     if(state == "closed"){ //閉める
         for(let i = groups_len-1; i >= 1; i--){
             if(groups[i].position.y > dist*i){
-                groups[i].position.y += easedSpead(groups[i].position.y, dist*i, speed*ratio);
+                groups[i].position.y += ease_diff(groups[i].position.y, dist*i, speed*ratio);
             }
         }
     } else { //n階部分が見える
@@ -206,15 +248,15 @@ function move_groups(){
         }
         for(let i = groups_len-1; i >= 1; i--){
             if(i >= num && groups[i].position.y < max_alt+dist*(i-1)){
-                groups[i].position.y += easedSpead(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);
+                groups[i].position.y += ease_diff(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);
             } else if(i < num && groups[i].position.y > dist*i){
-                groups[i].position.y += easedSpead(groups[i].position.y, dist*i, speed*ratio);
+                groups[i].position.y += ease_diff(groups[i].position.y, dist*i, speed*ratio);
             }
         }
     }
 }
 
-function easedSpead(cur,goal,speed){ //返り値はイージングされた速度
+function ease_diff(cur,goal,speed){ //返り値はイージングされた速度のデルタ
     const a = (goal-cur)*speed;
     if(a >= 0){
         return Math.min( a+speed*0.3, goal-cur );
@@ -230,7 +272,7 @@ function handleResize() {
     //レンダラーサイズ変更
     // renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
-    console.log(renderer);
+    // console.log(renderer);
     //カメラアスペクト比変更
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
@@ -277,6 +319,7 @@ function render() {
         if(render_cnt > 0) return;
     }
     // camera.lookAt(new THREE.Vector3(0, 10, 0));
+    move_camera();
     move_groups();
     renderer.render(scene, camera);
     controls.update();
