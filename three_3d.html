@@ -196,7 +196,7 @@ function click(x,y) {
 }
 
 //カメラ回転関数
-let turn_flag = [false, false]; //[トリガー用, 45度回転]
+let turn_flag = false;
 let turn_info; //{ahv: undefined, oav: undefined ,theta: undefined, size: undefined, cnt:0}; //acv, ahv, theta, dist, count
 function camera_turn(oav, ocv){ //目標v, カメラv
     // console.log(oav,ocv);
@@ -214,61 +214,54 @@ function camera_turn(oav, ocv){ //目標v, カメラv
     controls.enableRotate = false;
     controls.enableZoom = false;
 
-    turn_flag = [true, true, true, true];
-    turn_info = {ahv: ahv, oav: oav, targetv: controls.target, theta: theta, size: size, cnt: 0};
+    turn_flag = true;
+    turn_info = {ahv: ahv, oav: oav, targetv: controls.target.clone(), theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
 }
 
 function move_camera(){
-    if(!turn_flag[0]) return;
-    // console.log(ahv,theta);
-    //theta変更
-    if(turn_flag[1]){
-        const diff = ease_diff(turn_info.theta, Math.PI*0.25, 0.005);
-        if(diff == 0) turn_flag[1] = false;
+    if(!turn_flag) return
 
-        turn_info.theta += diff;
-
-        //45度回転計算
-        const yv = new THREE.Vector3(0,1,0)
-                    .multiplyScalar(Math.sin(turn_info.theta));
-        const xzv = turn_info.ahv.clone()
-                    .multiplyScalar(Math.cos(turn_info.theta));
-        const anv = yv.add(xzv).multiplyScalar(turn_info.size);
-        camera.position.copy( anv.add(turn_info.oav) );
+    let diff1;
+    if(turn_info.rad) diff1 = ease_diff(turn_info.theta, turn_info.rad, 0.01);
+    else{
+        diff1 = (turn_info.theta - Math.PI*0.25 -0.1)*0.015;
+        if(turn_info.theta + diff1 < 0) diff1 = 0;
     }
 
-    if(turn_flag[2]){
-        const diff = ease_diff(turn_info.cnt, 1, 0.005);
-        console.log(turn_info.cnt);
-        if(diff == 0){
-            //この辺直せ
-            turn_info.cnt = 0;
-            turn_flag[2] = false;
-        }
-        turn_info.cnt += diff; // 0 <= cnt <= 1
+    const diff2 = ease_diff(turn_info.cnt1, 0, 0.005);
+    const diff3 = ease_diff(turn_info.cnt2, 1, 0.01);
 
-        controls.target.copy(turn_info.oav.clone().sub(turn_info.targetv)
-                            .multiplyScalar( turn_info.cnt )
-                            .add(turn_info.targetv));       //現在位置からクリック位置まで
+    if(turn_info.rad){
+        turn_info.theta += diff1;
+    } else {
+        turn_info.theta += diff1;
+    }
+    turn_info.cnt1 += diff2; // 0 <= cnt1,cnt2 <= 1
+    turn_info.cnt2 += diff3;
+
+    if(!diff1 && turn_info.rad){
+        turn_info.rad = 0;
+    } else if(!(diff1 || diff2 || diff3)){
+        //終了
+        controls.enableRotate = true;
+        controls.enableZoom = true;
+        turn_flag = false;
+        return
     }
 
-    if(!turn_flag[1] && !turn_flag[2]){
-        if(turn_flag[3]){
-            //ズーム
-            const diff = ease_diff(turn_info.cnt, 1, 0.05);
-            if(diff == 0) turn_flag[3] = false;
-            turn_info.cnt += diff; // 0 <= cnt <= 1
+    //カメラ自体の位置
+    const yv = new THREE.Vector3(0,1,0)
+                .multiplyScalar(Math.sin(turn_info.theta));
+    const xzv = turn_info.ahv.clone()
+                .multiplyScalar(Math.cos(turn_info.theta));
+    const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.01) ); //調整　真上防止
+    camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,1,0)) );
 
-            const camav = turn_info.oav.clone().sub(camera.position);
-            camera.position.copy( camav.multiplyScalar(turn_info.cnt).add( camera.position) ); //ズーム
-            console.log(camera.position);
-        } else {
-            //終了
-            controls.enableRotate = true;
-            controls.enableZoom = true;
-            turn_flag[0] = false;
-        }
-    }
+    //target 移動
+
+    controls.target.copy(turn_info.oav.clone().sub(turn_info.targetv)
+                        .multiplyScalar( turn_info.cnt2 )
+                        .add(turn_info.targetv));
 }
 
 const speed = 0.1;
