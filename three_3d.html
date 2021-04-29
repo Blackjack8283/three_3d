@@ -24,8 +24,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
 scene.name = undefined;
 
-const camera = new THREE.PerspectiveCamera(75, width/height, 0.1, 1000);
-camera.position.set(0, 40, 40);
+const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1000);
+camera.position.set(0, 100, 80);
 scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({antialias: true});
@@ -51,22 +51,6 @@ controls.dampingFactor = 0.2;
 controls.rotateSpeed = 0.6;
 
 stage.appendChild(element);
-
-//クリック
-// let check = false;
-// element.addEventListener("touchstart", (e) => {
-//     check = true;
-//     const x = e.changedTouches[0].pageX - stage.offsetLeft;
-//     const y = e.changedTouches[0].pageY - stage.offsetTop;
-//     pre_click(x,y);
-//     console.log("phone");
-// }, false);
-
-// element.addEventListener("touchend", (e) => {
-//     const x = e.changedTouches[0].pageX - stage.offsetLeft;
-//     const y = e.changedTouches[0].pageY - stage.offsetTop;
-//     click(x,y);
-// }, false);
 
 element.addEventListener("pointerdown", (e) => {
     // if (!check){
@@ -143,11 +127,6 @@ window.addEventListener("resize", handleResize, false);
         const sphere = new THREE.Mesh( geometry, material);
         scene.add( sphere );
     });
-
-    // const geometry = new THREE.SphereGeometry( 100, 32, 32 );
-    // const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-    // const sphere = new THREE.Mesh( geometry, material );
-    // scene.add( sphere );
 }
 
 //obj追加
@@ -157,8 +136,8 @@ for(let i = 0; i < groups_len; i++){
     groups[i] = new THREE.Group();
 }
 
-const dist = 5;
-const max_alt = 30;
+const dist = 14;
+const max_alt = 80;
 let state = "closed";
 {
     const mtlLoader = new MTLLoader();
@@ -171,8 +150,8 @@ let state = "closed";
                 const new_root = root.clone();
                 new_root.name = String(i);
                 groups[i].add(new_root);
-                groups[i].scale.set(0.15,0.15,0.15);
-                groups[i].position.y +=  dist*i;
+                groups[i].scale.set(0.5,0.5,0.5);
+                groups[i].position.y +=  dist*i; //非同期注意
                 scene.add(groups[i]);
             }
         });
@@ -181,7 +160,10 @@ let state = "closed";
 
 
 let pre_elem_name;
+let pre_posi ; //obj
 function pre_click(x,y){
+    pre_posi = {x: x, y: y};
+
     const mouse = new THREE.Vector2();
     mouse.x = (x / width) * 2 - 1;
     mouse.y = -(y / height) * 2 + 1;
@@ -195,6 +177,8 @@ function pre_click(x,y){
 }
 
 function click(x,y) {
+    if(Math.abs(pre_posi.x-x) > 3 || Math.abs(pre_posi.y-y) > 3) return;
+
     const mouse = new THREE.Vector2();
     mouse.x = (x / width) * 2 - 1;
     mouse.y = -(y / height) * 2 + 1;
@@ -202,12 +186,12 @@ function click(x,y) {
     const ray = new THREE.Raycaster;
     ray.setFromCamera(mouse, camera);
     const bump = ray.intersectObjects(scene.children,true);
-    if (bump.length != 0 && bump[0].object.parent.name == pre_elem_name) {
+    if (bump.length != 0 && bump[0].object.parent.name == pre_elem_name && !turn_flag) {
         const obj = bump[0].object.parent;
         if(obj.name != undefined){
             if(state == obj.name) camera_trigger(bump[0].point, camera.position);
             else state = obj.name;
-        } else { //テスト用分岐　カメラ回転関数へ
+        } else {
             state = "closed";
         }
     }
@@ -215,15 +199,14 @@ function click(x,y) {
 
 //カメラ回転関数
 let turn_flag = false;
-let turn_info; //{ahv: undefined, oav: undefined ,theta: undefined, size: undefined, cnt:0}; //acv, ahv, theta, dist, count
+let turn_info; //obj
 function camera_trigger(oav, ocv){ //目標v, カメラv
-    // console.log(oav,ocv);
     let acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
     let ahv = ohv.clone().sub(oav);
     const cos_theta = (ahv.clone().normalize())
                         .dot(acv.clone().normalize());
-    let theta = Math.acos(cos_theta); //ラジアンじゃ
+    let theta = Math.acos(cos_theta); //thetaはラジアン
     const size = acv.clone().length();
     if(oav.y > ocv.y) theta *= -1;
     ahv.normalize();
@@ -275,21 +258,24 @@ function move_camera(){
     const xzv = turn_info.ahv.clone()
                 .multiplyScalar(Math.cos(turn_info.theta));
     const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.02) ); //調整　真上防止
-    camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,1,0)) );
+    camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,0.1,0)) ); //めり込み防止で足す
 
     //target 移動
 
     controls.target.copy(turn_info.oav.clone().sub(turn_info.targetv)
                         .multiplyScalar( turn_info.cnt2 )
-                        .add(turn_info.targetv));
+                        .add(turn_info.targetv))
+                        .add(new THREE.Vector3(0,0.1,0)); //カメラと同様に足して平行に
 }
 
 const speed = 0.1;
 function move_groups(){
-    if(state == "closed"){ //閉める
+    if(state == "closed"){ //閉まった状態　最上階と区別のため
+        let diff = 0;
         for(let i = groups_len-1; i >= 1; i--){
-            if(groups[i].position.y > dist*i){
-                groups[i].position.y += ease_diff(groups[i].position.y, dist*i, speed*ratio);
+            if(!diff) diff = ease_diff(groups[i].position.y, dist*i, speed*ratio);
+            if(groups[i].position.y > dist*i){ //関係ないのを巻き込まない
+                groups[i].position.y += diff;
             }
         }
     } else { //x階部分が見える
@@ -316,11 +302,8 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
 function handleResize() {
     width = window.innerWidth;
     height = window.innerHeight;
-    console.log(width,height);
     //レンダラーサイズ変更
-    // renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
-    // console.log(renderer);
     //カメラアスペクト比変更
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
@@ -366,7 +349,6 @@ function render() {
         render_cnt *= -1;
         if(render_cnt > 0) return;
     }
-    // camera.lookAt(new THREE.Vector3(0, 10, 0));
     move_camera();
     move_groups();
     renderer.render(scene, camera);
