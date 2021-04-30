@@ -42,7 +42,7 @@ controls.enableDamping = true;
 controls.enableZoom = true;
 controls.enablePan = false;
 controls.enableRotate = true;
-controls.maxDistance = 200;
+controls.maxDistance = 220;
 controls.minDistance = 0.3;
 controls.maxPolarAngle = Math.PI/2 - 0.01;
 
@@ -70,16 +70,15 @@ element.addEventListener("pointerup", (e) => {
 
 window.addEventListener("resize", handleResize, false);
 
-//平面
+//地面
 {
     const planeSize = 512;
 
-    const loader = new THREE.TextureLoader();
     //画像
-    const texture = loader.load('./images/grass.png');
+    const texture = new THREE.TextureLoader().load('./images/grass.png');
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.magFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.LinearMipmapLinearFilter;
     //planeSize/2回リピート
     const repeats = planeSize / 64;
     texture.repeat.set(repeats, repeats);
@@ -89,7 +88,7 @@ window.addEventListener("resize", handleResize, false);
     //マテリアル
     const planeMat = new THREE.MeshPhongMaterial({
       map: texture,
-      side: THREE.DoubleSide,
+      side: THREE.DoubleSide //両面描画
     });
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
@@ -121,12 +120,95 @@ window.addEventListener("resize", handleResize, false);
 {
     const loader = new THREE.TextureLoader();
     loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
-        const geometry = new THREE.SphereGeometry(200, 32, 32);
+        const geometry = new THREE.SphereGeometry(250, 32, 32);
         geometry.scale(-1, 1, 1);
         const material =  new THREE.MeshLambertMaterial({map: texture});
         const sphere = new THREE.Mesh( geometry, material);
         scene.add( sphere );
     });
+}
+
+//ボタン　テクスチャ
+const button_tex = new THREE.TextureLoader().load('./images/button.png');
+let buttons = [];
+//posiは内部ではvector
+let posi = [
+            //南側校舎 :[0]
+                [
+                    [], //1F :[0][0]
+                    [], //2F :[0][1]
+                    [], //3F :[0][2]
+                    [[50,75,20]]  //4F :[0][3]
+                ],
+            //北側校舎 :[1]
+                [
+                    [], //1F :[1][0]
+                    [], //2F :[1][1]
+                    [], //3F :[1][2]
+                    []  //4F :[1][3]
+                ],
+            //講堂
+                [
+                ],
+            //体育館・食堂
+                [
+                ]
+            ];
+
+//posiをvectorに変換
+function posi_to_vec(array){
+    const len = array.length;
+    let ret_array = [];
+    for(let i = 0; i < len; i++){
+        if(typeof array[i] == "number"){ //数字の場合
+            return new THREE.Vector3(...array);
+        } else { //配列の場合　再帰
+            ret_array[i] = posi_to_vec(array[i]);
+        }
+    }
+    return ret_array; //空白の場合は空配列
+}
+
+posi = posi_to_vec(posi);
+console.log(posi);
+
+generate_buttons(posi[0][3]);
+
+//ボタン生成
+function generate_buttons(array){
+    for(let vec of array){
+        const planeGeo = new THREE.PlaneGeometry(2, 2); //サイズ
+        const planeMat = new THREE.MeshPhongMaterial({map: button_tex, transparent: true});
+        const mesh = new THREE.Mesh(planeGeo, planeMat);
+        mesh.rotation.x = Math.PI * -.5;
+        //sceneに追加
+        mesh.position.copy(vec);
+        mesh.name = "button";
+        buttons.push(mesh);
+        scene.add(mesh);
+    }
+}
+
+// setTimeout(delete_buttons,1000);
+function delete_buttons(){
+    const len = buttons.length;
+    for(let i = 0; i < len; i++){
+        scene.remove(buttons[i]);
+        buttons[i].geometry.dispose();
+        buttons[i].material.dispose();
+        buttons[i] = undefined;
+    }
+    buttons = [];
+}
+
+//ごみ
+function delete_mesh(array){
+    for(let mesh of array){
+        scene.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+        return undefined;
+    }
 }
 
 //obj追加
@@ -188,12 +270,19 @@ function click(x,y) {
     const bump = ray.intersectObjects(scene.children,true);
     if (bump.length != 0 && bump[0].object.parent.name == pre_elem_name && !turn_flag) {
         const obj = bump[0].object.parent;
-        if(obj.name != undefined){
-            if(state == obj.name) camera_trigger(bump[0].point, camera.position);
-            else state = obj.name;
+        //青ボタン
+        if(bump[0].object.name == "button"){
+            camera_trigger(bump[0].point, camera.position);
+
+        //校舎クリック
+        } else if(obj.name != undefined){
+            state = obj.name; //階の上下
+
+        //その他クリック
         } else {
             state = "closed";
         }
+        console.log(bump[0].object.name);
     }
 }
 
@@ -227,7 +316,7 @@ function move_camera(){
     if(turn_info.rad) diff1 = ease_diff(turn_info.theta, turn_info.rad, 0.01);
     //45度=>0度
     else{
-        diff1 = (turn_info.theta - Math.PI*0.25 -0.1)*0.015;
+        diff1 = (turn_info.theta - Math.PI*0.25 -0.1)*0.012;
         if(turn_info.theta + diff1 < 0) diff1 = 0;
     }
 
