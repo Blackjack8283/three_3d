@@ -135,10 +135,10 @@ let buttons = [];
 let posi = [
             //南側校舎 :[0]
                 [
-                    [], //1F :[0][0]
-                    [], //2F :[0][1]
-                    [], //3F :[0][2]
-                    [[50,75,20]]  //4F :[0][3]
+                    [[50,17.5,20],[50,17.5,10],[50,17.5,0],[50,17.5,-10],[50,17.5,-20],[50,17.5,-30]], //1F :[0][0]
+                    [[50,31.5,20],[50,31.5,10],[50,31.5,0],[50,31.5,-10],[50,31.5,-20],[50,31.5,-30]], //2F :[0][1]
+                    [[50,45.5,20],[50,45.5,10],[50,45.5,0],[50,45.5,-10],[50,45.5,-20],[50,45.5,-30]], //3F :[0][2]
+                    [[50,59.5,20],[50,59.5,10],[50,59.5,0],[50,59.5,-10],[50,59.5,-20],[50,59.5,-30]]  //4F :[0][3]
                 ],
             //北側校舎 :[1]
                 [
@@ -156,23 +156,23 @@ let posi = [
             ];
 
 //posiをvectorに変換
-function posi_to_vec(array){
-    const len = array.length;
-    let ret_array = [];
-    for(let i = 0; i < len; i++){
-        if(typeof array[i] == "number"){ //数字の場合
-            return new THREE.Vector3(...array);
-        } else { //配列の場合　再帰
-            ret_array[i] = posi_to_vec(array[i]);
+{
+    function posi_to_vec(array){
+        const len = array.length;
+        let ret_array = [];
+        for(let i = 0; i < len; i++){
+            if(typeof array[i] == "number"){ //数字の場合
+                return new THREE.Vector3(...array);
+            } else { //配列の場合　再帰
+                ret_array[i] = posi_to_vec(array[i]);
+            }
         }
+        return ret_array; //空白の場合は空配列
     }
-    return ret_array; //空白の場合は空配列
+
+    posi = posi_to_vec(posi);
 }
-
-posi = posi_to_vec(posi);
 console.log(posi);
-
-generate_buttons(posi[0][3]);
 
 //ボタン生成
 function generate_buttons(array){
@@ -201,18 +201,8 @@ function delete_buttons(){
     buttons = [];
 }
 
-//ごみ
-function delete_mesh(array){
-    for(let mesh of array){
-        scene.remove(mesh);
-        mesh.geometry.dispose();
-        mesh.material.dispose();
-        return undefined;
-    }
-}
-
 //obj追加
-const groups_len = 5;
+const groups_len = 4;
 let groups = []; //こっちでgroup作ってあとでぶっこむ
 for(let i = 0; i < groups_len; i++){
     groups[i] = new THREE.Group();
@@ -230,7 +220,7 @@ let state = "closed";
         objLoader.load('./models/koyo/koyo.obj', (root) => {
             for(let i = 0; i < groups_len; i++){
                 const new_root = root.clone();
-                new_root.name = String(i);
+                new_root.name = i; //number
                 groups[i].add(new_root);
                 groups[i].scale.set(0.5,0.5,0.5);
                 groups[i].position.y +=  dist*i; //非同期注意
@@ -258,7 +248,9 @@ function pre_click(x,y){
     if(bump.length > 0) pre_elem_name = bump[0].object.parent.name;
 }
 
+//クリック時の処理
 function click(x,y) {
+    //ドラッグとの区別
     if(Math.abs(pre_posi.x-x) > 3 || Math.abs(pre_posi.y-y) > 3) return;
 
     const mouse = new THREE.Vector2();
@@ -270,26 +262,49 @@ function click(x,y) {
     const bump = ray.intersectObjects(scene.children,true);
     if (bump.length != 0 && bump[0].object.parent.name == pre_elem_name && !turn_flag) {
         const obj = bump[0].object.parent;
-        //青ボタン
+
+        //青ボタンクリック
         if(bump[0].object.name == "button"){
-            camera_trigger(bump[0].point, camera.position);
+            camera_trigger(bump[0].point);
 
         //校舎クリック
         } else if(obj.name != undefined){
-            state = obj.name; //階の上下
+            //スマホ救済用　青ボタン判定ゆるく
+            const point = bump[0].point;
+            let nearest = {dist: 1e9, position: undefined};
+            //最も近いボタン求める
+            for(let button of buttons){
+                const new_dist = button.position.clone().sub(point).length();
+                if(nearest.dist > new_dist){
+                    nearest.dist = new_dist;
+                    nearest.position = button.position;
+                }
+            }
 
-        //その他クリック
+            if(nearest.dist < 5){
+                //カメラ移動
+                camera_trigger(nearest.position);
+            } else {
+                //校舎の上下
+                delete_buttons();
+                if(state > obj.name || state == "closed") generate_buttons(posi[0][obj.name]);
+                state = obj.name;
+                move_groups_flag = true;
+            }
+        //その他クリック -> closed
         } else {
+            delete_buttons();
             state = "closed";
+            move_groups_flag = true;
         }
-        console.log(bump[0].object.name);
     }
 }
 
 //カメラ回転関数
 let turn_flag = false;
 let turn_info; //obj
-function camera_trigger(oav, ocv){ //目標v, カメラv
+function camera_trigger(oav){ //目標v,
+    const ocv = camera.position;
     let acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
     let ahv = ohv.clone().sub(oav);
@@ -358,28 +373,34 @@ function move_camera(){
 }
 
 const speed = 0.1;
+let move_groups_flag = false;
 function move_groups(){
-    if(state == "closed"){ //閉まった状態　最上階と区別のため
-        let diff = 0;
-        for(let i = groups_len-1; i >= 1; i--){
-            if(!diff) diff = ease_diff(groups[i].position.y, dist*i, speed*ratio);
-            if(groups[i].position.y > dist*i){ //関係ないのを巻き込まない
-                groups[i].position.y += diff;
-            }
+    if(!move_groups_flag) return;
+
+    //上に行くものの中で最小の番号
+    let num;
+    if(state == "closed") num = groups_len;
+    else num = state+1;
+
+    //移動
+    let diff1 = 0, diff2 = 0;
+    for(let i = groups_len-1; i >= 1; i--){
+        if(i >= num && groups[i].position.y < max_alt+dist*(i-1)){ //上がる方
+            if(!diff1) diff1 = ease_diff(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);
+            groups[i].position.y += diff1;
+        } else if(i < num && groups[i].position.y > dist*i){ //下がる方
+            if(!diff2) diff2 = ease_diff(groups[i].position.y, dist*i, speed*ratio);
+            groups[i].position.y += diff2;
         }
-    } else { //x階部分が見える
-        const num = Number(state)+1;
-        for(let i = groups_len-1; i >= 1; i--){
-            if(i >= num && groups[i].position.y < max_alt+dist*(i-1)){
-                groups[i].position.y += ease_diff(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);
-            } else if(i < num && groups[i].position.y > dist*i){
-                groups[i].position.y += ease_diff(groups[i].position.y, dist*i, speed*ratio);
-            }
-        }
+    }
+
+    if(!diff1 && !diff2){ //移動終了時の処理
+        move_groups_flag = false;
+        if(state != "closed" && buttons.length == 0) generate_buttons(posi[0][state]);
     }
 }
 
-function ease_diff(cur,goal,speed){ //返り値はイージングされた速度のデルタ
+function ease_diff(cur,goal,speed){ //返り値はイージングされた速度の変化量
     const a = (goal-cur)*speed;
     if(a >= 0){
         return Math.min( a+speed*0.3, goal-cur );
