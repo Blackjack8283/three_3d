@@ -172,7 +172,76 @@ let posi = [
 
     posi = posi_to_vec(posi);
 }
-console.log(posi);
+
+// class Groups{
+//     constructor(){
+
+//     }
+// }
+
+//obj追加
+const groups_len = 8;
+let groups = []; //こっちでgroup作ってあとでぶっこむ
+
+const dist = 14;
+const max_alt = 150;
+let state = "closed";
+
+function load_obj(mtl_url, obj_url){
+    return new Promise((resolve,reject) => {
+        const mtlLoader = new MTLLoader();
+        mtlLoader.load(mtl_url, (mtl) => {
+            mtl.preload();
+            const objLoader = new OBJLoader();
+            objLoader.setMaterials(mtl);
+            objLoader.load(obj_url, (root) => {
+                resolve(root);
+            });
+        });
+    });
+}
+
+let loaded = false;
+(async () => {
+    for(let i = 0; i < groups_len; i++){
+        await load_obj('./models/koyo/koyo.mtl','./models/koyo/koyo.obj').then((root) => {
+            groups[i] = root;
+            groups[i].name = i; //番号
+
+            if(0 <= i && i <= 3){
+                groups[i].part_of = "south"; //建物識別
+                groups[i].position.y +=  dist*i;
+            } else if(4 <= i && i <= 7){
+                groups[i].part_of = "north";
+                groups[i].position.x += -120;
+                groups[i].position.y += dist*(i-4);
+            }
+
+            groups[i].scale.set(0.5,0.5,0.5);
+            scene.add(groups[i]);
+        });
+    }
+    loaded = true;
+})();
+
+// {
+//     const mtlLoader = new MTLLoader();
+//     mtlLoader.load('./models/koyo/koyo.mtl', (mtl) => {
+//         mtl.preload();
+//         const objLoader = new OBJLoader();
+//         objLoader.setMaterials(mtl);
+//         objLoader.load('./models/koyo/koyo.obj', (root) => {
+//             for(let i = 0; i < groups_len; i++){
+//                 groups[i] = root.clone();
+//                 groups[i].name = i;
+//                 groups[i].scale.set(0.5,0.5,0.5);
+//                 groups[i].position.y +=  dist*i; //非同期注意
+//                 scene.add(groups[i]);
+//             }
+//         });
+//     });
+// }
+console.log(groups);
 
 //ボタン生成
 function generate_buttons(array){
@@ -201,36 +270,6 @@ function delete_buttons(){
     buttons = [];
 }
 
-//obj追加
-const groups_len = 4;
-let groups = []; //こっちでgroup作ってあとでぶっこむ
-for(let i = 0; i < groups_len; i++){
-    groups[i] = new THREE.Group();
-}
-
-const dist = 14;
-const max_alt = 80;
-let state = "closed";
-{
-    const mtlLoader = new MTLLoader();
-    mtlLoader.load('./models/koyo/koyo.mtl', (mtl) => {
-        mtl.preload();
-        const objLoader = new OBJLoader();
-        objLoader.setMaterials(mtl);
-        objLoader.load('./models/koyo/koyo.obj', (root) => {
-            for(let i = 0; i < groups_len; i++){
-                const new_root = root.clone();
-                new_root.name = i; //number
-                groups[i].add(new_root);
-                groups[i].scale.set(0.5,0.5,0.5);
-                groups[i].position.y +=  dist*i; //非同期注意
-                scene.add(groups[i]);
-            }
-        });
-    });
-}
-
-
 let pre_elem_name;
 let pre_posi ; //obj
 function pre_click(x,y){
@@ -250,6 +289,8 @@ function pre_click(x,y){
 
 //クリック時の処理
 function click(x,y) {
+    //objロード前return
+    if(!loaded) return;
     //ドラッグとの区別
     if(Math.abs(pre_posi.x-x) > 3 || Math.abs(pre_posi.y-y) > 3) return;
 
@@ -284,10 +325,16 @@ function click(x,y) {
             if(nearest.dist < 5){
                 //カメラ移動
                 camera_trigger(nearest.position);
-            } else {
+            } else if(state != obj.name){ //異なる階選択時
                 //校舎の上下
-                delete_buttons();
-                if(state > obj.name || state == "closed") generate_buttons(posi[0][obj.name]);
+                if(state == "closed" || state > obj.name){ //現在より下　上の階はmove_groupsで
+                    delete_buttons();
+                    generate_buttons(posi[0][obj.name]);
+                    add_later = false;
+                } else { //現在より上
+                    add_later = true;
+                }
+
                 state = obj.name;
                 move_groups_flag = true;
             }
@@ -373,7 +420,8 @@ function move_camera(){
 }
 
 const speed = 0.1;
-let move_groups_flag = false;
+let move_groups_flag = false; //move_groupsを回すフラグ
+let add_later = false; //groupを動かし終わってからの動作のフラグ
 function move_groups(){
     if(!move_groups_flag) return;
 
@@ -383,20 +431,25 @@ function move_groups(){
     else num = state+1;
 
     //移動
-    let diff1 = 0, diff2 = 0;
+    let up = false, down = false;
     for(let i = groups_len-1; i >= 1; i--){
         if(i >= num && groups[i].position.y < max_alt+dist*(i-1)){ //上がる方
-            if(!diff1) diff1 = ease_diff(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);
-            groups[i].position.y += diff1;
+            if(!up) up = true;
+            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);;
         } else if(i < num && groups[i].position.y > dist*i){ //下がる方
-            if(!diff2) diff2 = ease_diff(groups[i].position.y, dist*i, speed*ratio);
-            groups[i].position.y += diff2;
+            if(!down) down = true;
+            groups[i].position.y += ease_diff(groups[i].position.y, dist*i, speed*ratio);
         }
     }
 
-    if(!diff1 && !diff2){ //移動終了時の処理
+    if(!up && !down){ //移動終了時の処理
         move_groups_flag = false;
-        if(state != "closed" && buttons.length == 0) generate_buttons(posi[0][state]);
+        if(add_later){
+            delete_buttons();
+            generate_buttons(posi[0][state]);
+            add_later = false;
+        }
+        // console.log(buttons);
     }
 }
 
