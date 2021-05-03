@@ -142,10 +142,10 @@ let posi = [
                 ],
             //北側校舎 :[1]
                 [
-                    [], //1F :[1][0]
-                    [], //2F :[1][1]
-                    [], //3F :[1][2]
-                    []  //4F :[1][3]
+                    [[-70,17.5,20],[-70,17.5,10],[-70,17.5,0],[-70,17.5,-10],[-70,17.5,-20],[-70,17.5,-30]], //1F :[1][0]
+                    [[-70,31.5,20],[-70,31.5,10],[-70,31.5,0],[-70,31.5,-10],[-70,31.5,-20],[-70,31.5,-30]], //2F :[1][1]
+                    [[-70,45.5,20],[-70,45.5,10],[-70,45.5,0],[-70,45.5,-10],[-70,45.5,-20],[-70,45.5,-30]], //3F :[1][2]
+                    [[-70,59.5,20],[-70,59.5,10],[-70,59.5,0],[-70,59.5,-10],[-70,59.5,-20],[-70,59.5,-30]]  //4F :[1][3]
                 ],
             //講堂
                 [
@@ -184,7 +184,7 @@ const groups_len = 8;
 let groups = []; //こっちでgroup作ってあとでぶっこむ
 
 const dist = 14;
-const max_alt = 150;
+const max_alt = 100;
 let state = "closed";
 
 function load_obj(mtl_url, obj_url){
@@ -207,7 +207,6 @@ let loaded = false;
         await load_obj('./models/koyo/koyo.mtl','./models/koyo/koyo.obj').then((root) => {
             groups[i] = root;
             groups[i].name = i; //番号
-
             if(0 <= i && i <= 3){
                 groups[i].part_of = "south"; //建物識別
                 groups[i].position.y +=  dist*i;
@@ -216,7 +215,7 @@ let loaded = false;
                 groups[i].position.x += -120;
                 groups[i].position.y += dist*(i-4);
             }
-
+            groups[i].ori_position = groups[i].position.clone();
             groups[i].scale.set(0.5,0.5,0.5);
             scene.add(groups[i]);
         });
@@ -244,7 +243,14 @@ let loaded = false;
 console.log(groups);
 
 //ボタン生成
-function generate_buttons(array){
+function generate_buttons(number){
+    let array;
+    if(0 <= number && number <= 3){
+        array = posi[0][number];
+    } else if(4 <= number && number <= 7){
+        array = posi[1][number-4];
+    }
+
     for(let vec of array){
         const planeGeo = new THREE.PlaneGeometry(2, 2); //サイズ
         const planeMat = new THREE.MeshPhongMaterial({map: button_tex, transparent: true});
@@ -327,12 +333,14 @@ function click(x,y) {
                 camera_trigger(nearest.position);
             } else if(state != obj.name){ //異なる階選択時
                 //校舎の上下
-                if(state == "closed" || state > obj.name){ //現在より下　上の階はmove_groupsで
-                    delete_buttons();
-                    generate_buttons(posi[0][obj.name]);
-                    add_later = false;
-                } else { //現在より上
+                if(state != "closed" && groups[state].part_of == groups[obj.name].part_of && state < obj.name){
+                    //同じ校舎かつ現在より上
                     add_later = true;
+                } else {
+                    //現在より下か他校舎
+                    delete_buttons();
+                    generate_buttons(obj.name);
+                    add_later = false;
                 }
 
                 state = obj.name;
@@ -433,12 +441,17 @@ function move_groups(){
     //移動
     let up = false, down = false;
     for(let i = groups_len-1; i >= 1; i--){
-        if(i >= num && groups[i].position.y < max_alt+dist*(i-1)){ //上がる方
-            if(!up) up = true;
-            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+dist*(i-1), speed*ratio);;
-        } else if(i < num && groups[i].position.y > dist*i){ //下がる方
-            if(!down) down = true;
-            groups[i].position.y += ease_diff(groups[i].position.y, dist*i, speed*ratio);
+        if(state == "closed" || groups[state].part_of != groups[i].part_of){ //非選択又は別校舎
+            if(groups[i].position.y > groups[i].ori_position.y){
+                down = true;
+                groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, speed);
+            }
+        } else if(i >= num && groups[i].position.y < max_alt+groups[i].ori_position.y-dist){ //同校舎かつ上がる階
+            up = true;
+            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+groups[i].ori_position.y-dist, speed);
+        } else if(i < num && groups[i].position.y > groups[i].ori_position.y){ //同校舎かつ下がる階
+            down = true;
+            groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, speed);
         }
     }
 
@@ -446,7 +459,7 @@ function move_groups(){
         move_groups_flag = false;
         if(add_later){
             delete_buttons();
-            generate_buttons(posi[0][state]);
+            generate_buttons(state);
             add_later = false;
         }
         // console.log(buttons);
@@ -454,6 +467,7 @@ function move_groups(){
 }
 
 function ease_diff(cur,goal,speed){ //返り値はイージングされた速度の変化量
+    speed *= ratio;
     const a = (goal-cur)*speed;
     if(a >= 0){
         return Math.min( a+speed*0.3, goal-cur );
@@ -500,22 +514,23 @@ function timeCheck() { //20fps未満は解像度下げる
             limited = false;
         }
     }
-    last_time = new Date().getTime();
 }
 
 let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
 
+    move_camera();
+    move_groups();
+    renderer.render(scene, camera);
+    controls.update();
+
     timeCheck();
     if(limited){ //30fps
         render_cnt *= -1;
         if(render_cnt > 0) return;
     }
-    move_camera();
-    move_groups();
-    renderer.render(scene, camera);
-    controls.update();
+    last_time = new Date().getTime();
 }
 
 requestAnimationFrame(render);
