@@ -93,6 +93,7 @@ window.addEventListener("resize", handleResize, false);
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
     mesh.rotation.x = Math.PI * -.5;
+    mesh.position.y -= 0.1;
     //sceneに追加
     scene.add(mesh);
 }
@@ -187,36 +188,59 @@ const dist = 14;
 const max_alt = 100;
 let state = "closed";
 
-function load_obj(mtl_url, obj_url){
-    return new Promise((resolve,reject) => {
-        const mtlLoader = new MTLLoader();
-        mtlLoader.load(mtl_url, (mtl) => {
-            mtl.preload();
+function load_obj(mtl_file_name, obj_file_name){
+    if(mtl_file_name == undefined){ //マテリアルないとき
+        return new Promise((resolve,reject) => {
             const objLoader = new OBJLoader();
-            objLoader.setMaterials(mtl);
-            objLoader.load(obj_url, (root) => {
+            objLoader.load("./models/koyo/" + obj_file_name, (root) => {
                 resolve(root);
             });
         });
-    });
+    } else { //マテリアルあるとき
+        return new Promise((resolve,reject) => {
+            const mtlLoader = new MTLLoader();
+            mtlLoader.load("./models/koyo/" + mtl_file_name, (mtl) => {
+                mtl.preload();
+                const objLoader = new OBJLoader();
+                objLoader.setMaterials(mtl);
+                objLoader.load("./models/koyo/" + obj_file_name, (root) => {
+                    resolve(root);
+                });
+            });
+        });
+    }
 }
 
 let loaded = false;
+const urls = [
+    [undefined,"3dMap_1F.obj"],
+    [undefined,"3dMap_2F.obj"],
+    [undefined,"3dMap_3F.obj"],
+    [undefined,"3dMap_4F.obj"],
+    ["koyo.mtl","koyo.obj"],
+    ["koyo.mtl","koyo.obj"],
+    ["koyo.mtl","koyo.obj"],
+    ["koyo.mtl","koyo.obj"]
+];
 (async () => {
     for(let i = 0; i < groups_len; i++){
-        await load_obj('./models/koyo/koyo.mtl','./models/koyo/koyo.obj').then((root) => {
+        await load_obj(urls[i][0],urls[i][1]).then((root) => {
             groups[i] = root;
             groups[i].name = i; //番号
             if(0 <= i && i <= 3){
                 groups[i].part_of = "south"; //建物識別
-                groups[i].position.y +=  dist*i;
+                // groups[i].position.y +=  dist*i;
+                groups[i].scale.set(3,3,3);
+                // groups[i].rotation.y += Math.PI * -.5;
+
+
             } else if(4 <= i && i <= 7){
                 groups[i].part_of = "north";
                 groups[i].position.x += -120;
                 groups[i].position.y += dist*(i-4);
+                groups[i].scale.set(0.5,0.5,0.5);
             }
             groups[i].ori_position = groups[i].position.clone();
-            groups[i].scale.set(0.5,0.5,0.5);
             scene.add(groups[i]);
         });
     }
