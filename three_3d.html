@@ -19,56 +19,17 @@ let height = window.innerHeight;
 
 document.body.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
 const stage = document.getElementById("stage");
-// const canvas = document.querySelector('#c');
+
+let mode = "3d";
+
+//3dモデル用のscene作成
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
 scene.name = undefined;
-
+//カメラ
 const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1000);
 camera.position.set(0, 100, 80);
 scene.add(camera);
-
-const renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(width, height);
-renderer.setClearColor({color: 0x000000});
-// renderer.shadowMap.enabled = true;
-const element = renderer.domElement;
-
-const controls = new OrbitControls(camera, element);
-controls.target.set(0, 0, 0);
-//各種設定
-controls.enableDamping = true;
-controls.enableZoom = true;
-controls.enablePan = false;
-controls.enableRotate = true;
-controls.maxDistance = 220;
-controls.minDistance = 0.3;
-controls.maxPolarAngle = Math.PI/2 - 0.01;
-
-// 視点の速さ　(timeCheck関数内も)
-controls.dampingFactor = 0.2;
-controls.rotateSpeed = 0.6;
-
-stage.appendChild(element);
-
-element.addEventListener("pointerdown", (e) => {
-    // if (!check){
-        const x = e.clientX - stage.offsetLeft;
-        const y = e.clientY - stage.offsetTop;
-        pre_click(x,y);
-    // }
-}, false);
-
-element.addEventListener("pointerup", (e) => {
-    // if (!check){
-        const x = e.clientX - stage.offsetLeft;
-        const y = e.clientY - stage.offsetTop;
-        click(x,y);
-    // } else check = false;
-}, false);
-
-window.addEventListener("resize", handleResize, false);
 
 //地面
 {
@@ -93,7 +54,7 @@ window.addEventListener("resize", handleResize, false);
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
     mesh.rotation.x = Math.PI * -.5;
-    mesh.position.y -= 0.1;
+    mesh.position.y -= 0.4;
     //sceneに追加
     scene.add(mesh);
 }
@@ -128,6 +89,88 @@ window.addEventListener("resize", handleResize, false);
         scene.add( sphere );
     });
 }
+//ここまで3d用scene
+
+//ストリートビュー用のscene作成
+const street_scene = new THREE.Scene();
+street_scene.background = new THREE.Color('skyblue');
+street_scene.name = undefined;
+
+//カメラ
+const street_camera = new THREE.PerspectiveCamera(75, width / height, 0.5,9);
+street_camera.position.set(0.1, 0, 0);
+street_scene.add(street_camera);
+
+//球の作成
+{
+    const geometry = new THREE.SphereGeometry(8, 64, 64);
+    geometry.scale(-1, 1, 1);
+    const loader = new THREE.TextureLoader();
+    loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
+        const material =  new THREE.MeshLambertMaterial({map: texture});
+        const sphere = new THREE.Mesh( geometry, material);
+        street_scene.add( sphere );
+    });
+}
+//半球光源 追加
+{
+    const skyColor = 0xB1E1FF;  // light blue
+    const groundColor = 0xB97A20;  // brownish orange
+    const intensity = 0.8;
+    const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+    street_scene.add(light);
+}
+//ここまでストリートビュー用のscene
+
+//レンダラー作成
+const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(width, height);
+renderer.setClearColor({color: 0x000000});
+// renderer.shadowMap.enabled = true;
+const element = renderer.domElement;
+
+const controls = create_controls(camera,element);
+const street_controls = create_controls(street_camera,element);
+
+function create_controls(camera,element){
+    const controls = new OrbitControls(camera, element);
+    controls.target.set(0, 0, 0);
+    //各種設定
+    controls.enableDamping = true;
+    controls.enableZoom = true;
+    controls.enablePan = false;
+    controls.enableRotate = true;
+    controls.maxDistance = 220;
+    controls.minDistance = 0.3;
+    controls.maxPolarAngle = Math.PI/2 - 0.01;
+
+    // 視点の速さ　(timeCheck関数内も)
+    controls.dampingFactor = 0.2;
+    controls.rotateSpeed = 0.6;
+
+    return controls;
+}
+
+stage.appendChild(element);
+
+element.addEventListener("pointerdown", (e) => {
+    // if (!check){
+        const x = e.clientX - stage.offsetLeft;
+        const y = e.clientY - stage.offsetTop;
+        pre_click(x,y);
+    // }
+}, false);
+
+element.addEventListener("pointerup", (e) => {
+    // if (!check){
+        const x = e.clientX - stage.offsetLeft;
+        const y = e.clientY - stage.offsetTop;
+        click(x,y);
+    // } else check = false;
+}, false);
+
+window.addEventListener("resize", handleResize, false);
 
 //ボタン　テクスチャ
 const button_tex = new THREE.TextureLoader().load('./images/button.png');
@@ -139,14 +182,16 @@ let posi = [
                     [[50,17.5,20],[50,17.5,10],[50,17.5,0],[50,17.5,-10],[50,17.5,-20],[50,17.5,-30]], //1F :[0][0]
                     [[50,31.5,20],[50,31.5,10],[50,31.5,0],[50,31.5,-10],[50,31.5,-20],[50,31.5,-30]], //2F :[0][1]
                     [[50,45.5,20],[50,45.5,10],[50,45.5,0],[50,45.5,-10],[50,45.5,-20],[50,45.5,-30]], //3F :[0][2]
-                    [[50,59.5,20],[50,59.5,10],[50,59.5,0],[50,59.5,-10],[50,59.5,-20],[50,59.5,-30]]  //4F :[0][3]
+                    [[50,59.5,20],[50,59.5,10],[50,59.5,0],[50,59.5,-10],[50,59.5,-20],[50,59.5,-30]], //4F :[0][3]
+                    [] //屋上
                 ],
             //北側校舎 :[1]
                 [
-                    [[-70,17.5,20],[-70,17.5,10],[-70,17.5,0],[-70,17.5,-10],[-70,17.5,-20],[-70,17.5,-30]], //1F :[1][0]
-                    [[-70,31.5,20],[-70,31.5,10],[-70,31.5,0],[-70,31.5,-10],[-70,31.5,-20],[-70,31.5,-30]], //2F :[1][1]
-                    [[-70,45.5,20],[-70,45.5,10],[-70,45.5,0],[-70,45.5,-10],[-70,45.5,-20],[-70,45.5,-30]], //3F :[1][2]
-                    [[-70,59.5,20],[-70,59.5,10],[-70,59.5,0],[-70,59.5,-10],[-70,59.5,-20],[-70,59.5,-30]]  //4F :[1][3]
+                    [[-50,17.5,20],[-50,17.5,10],[-50,17.5,0],[-50,17.5,-10],[-50,17.5,-20],[-50,17.5,-30]], //1F :[1][0]
+                    [[-50,31.5,20],[-50,31.5,10],[-50,31.5,0],[-50,31.5,-10],[-50,31.5,-20],[-50,31.5,-30]], //2F :[1][1]
+                    [[-50,45.5,20],[-50,45.5,10],[-50,45.5,0],[-50,45.5,-10],[-50,45.5,-20],[-50,45.5,-30]], //3F :[1][2]
+                    [[-50,59.5,20],[-50,59.5,10],[-50,59.5,0],[-50,59.5,-10],[-50,59.5,-20],[-50,59.5,-30]], //4F :[1][3]
+                    [] //屋上
                 ],
             //講堂
                 [
@@ -213,32 +258,35 @@ function load_obj(mtl_file_name, obj_file_name){
 
 let loaded = false;
 const urls = [
-    [undefined,"3dMap_1F.obj"],
-    [undefined,"3dMap_2F.obj"],
-    [undefined,"3dMap_3F.obj"],
-    [undefined,"3dMap_4F.obj"],
-    ["koyo.mtl","koyo.obj"],
-    ["koyo.mtl","koyo.obj"],
-    ["koyo.mtl","koyo.obj"],
-    ["koyo.mtl","koyo.obj"]
+    [undefined,"3dMap_south_1F.obj"],
+    [undefined,"3dMap_south_2F.obj"],
+    [undefined,"3dMap_south_3F.obj"],
+    [undefined,"3dMap_south_4F.obj"],
+    [undefined,"3dMap_south_ceiling.obj"],
+    [undefined,"3dMap_north_1F.obj"],
+    [undefined,"3dMap_north_2F.obj"],
+    [undefined,"3dMap_north_3F.obj"],
+    [undefined,"3dMap_north_4F.obj"],
+    [undefined,"3dMap_north_ceiling.obj"],
 ];
+
 (async () => {
     for(let i = 0; i < groups_len; i++){
         await load_obj(urls[i][0],urls[i][1]).then((root) => {
             groups[i] = root;
             groups[i].name = i; //番号
-            if(0 <= i && i <= 3){
+            if(0 <= i && i <= 4){
                 groups[i].part_of = "south"; //建物識別
                 // groups[i].position.y +=  dist*i;
                 groups[i].scale.set(3,3,3);
                 // groups[i].rotation.y += Math.PI * -.5;
 
 
-            } else if(4 <= i && i <= 7){
+            } else if(5 <= i && i <= 8){
                 groups[i].part_of = "north";
-                groups[i].position.x += -120;
-                groups[i].position.y += dist*(i-4);
-                groups[i].scale.set(0.5,0.5,0.5);
+                // groups[i].position.x += -120;
+                // groups[i].position.y += dist*(i-5);
+                groups[i].scale.set(3,3,3);
             }
             groups[i].ori_position = groups[i].position.clone();
             scene.add(groups[i]);
@@ -247,32 +295,13 @@ const urls = [
     loaded = true;
 })();
 
-// {
-//     const mtlLoader = new MTLLoader();
-//     mtlLoader.load('./models/koyo/koyo.mtl', (mtl) => {
-//         mtl.preload();
-//         const objLoader = new OBJLoader();
-//         objLoader.setMaterials(mtl);
-//         objLoader.load('./models/koyo/koyo.obj', (root) => {
-//             for(let i = 0; i < groups_len; i++){
-//                 groups[i] = root.clone();
-//                 groups[i].name = i;
-//                 groups[i].scale.set(0.5,0.5,0.5);
-//                 groups[i].position.y +=  dist*i; //非同期注意
-//                 scene.add(groups[i]);
-//             }
-//         });
-//     });
-// }
-console.log(groups);
-
 //ボタン生成
 function generate_buttons(number){
     let array;
-    if(0 <= number && number <= 3){
+    if(0 <= number && number <= 4){
         array = posi[0][number];
-    } else if(4 <= number && number <= 7){
-        array = posi[1][number-4];
+    } else if(5 <= number && number <= 8){
+        array = posi[1][number-5];
     }
 
     for(let vec of array){
@@ -336,7 +365,7 @@ function click(x,y) {
 
         //青ボタンクリック
         if(bump[0].object.name == "button"){
-            camera_trigger(bump[0].point);
+            camera_trigger(bump[0].object.position);
 
         //校舎クリック
         } else if(obj.name != undefined){
@@ -351,7 +380,7 @@ function click(x,y) {
                     nearest.position = button.position;
                 }
             }
-
+            // console.log(nearest.dist);
             if(nearest.dist < 5){
                 //カメラ移動
                 camera_trigger(nearest.position);
@@ -382,7 +411,7 @@ function click(x,y) {
 //カメラ回転関数
 let turn_flag = false;
 let turn_info; //obj
-function camera_trigger(oav){ //目標v,
+function camera_trigger(oav){ //目標vector
     const ocv = camera.position;
     let acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
@@ -399,7 +428,7 @@ function camera_trigger(oav){ //目標v,
     controls.enableZoom = false;
 
     turn_flag = true;
-    turn_info = {ahv: ahv, oav: oav, targetv: controls.target.clone(), theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
+    turn_info = {ahv: ahv, oav: oav, targetv: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
 }
 
 function move_camera(){
@@ -432,6 +461,8 @@ function move_camera(){
         controls.enableRotate = true;
         controls.enableZoom = true;
         turn_flag = false;
+        console.log("終了");
+        mode = "street";
         return;
     }
 
@@ -470,9 +501,9 @@ function move_groups(){
                 down = true;
                 groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, speed);
             }
-        } else if(i >= num && groups[i].position.y < max_alt+groups[i].ori_position.y-dist){ //同校舎かつ上がる階
+        } else if(i >= num && groups[i].position.y < max_alt+groups[i].ori_position.y){ //同校舎かつ上がる階
             up = true;
-            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+groups[i].ori_position.y-dist, speed);
+            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+groups[i].ori_position.y, speed);
         } else if(i < num && groups[i].position.y > groups[i].ori_position.y){ //同校舎かつ下がる階
             down = true;
             groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, speed);
@@ -506,8 +537,13 @@ function handleResize() {
     //レンダラーサイズ変更
     renderer.setSize(width, height);
     //カメラアスペクト比変更
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
+    if(mode == "3d"){
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+    } else {
+        street_camera.aspect = width / height;
+        street_camera.updateProjectionMatrix();
+    }
 }
 
 let last_time = 0;
@@ -525,7 +561,9 @@ function timeCheck() { //20fps未満は解像度下げる
             const cur_pixelRatio = window.devicePixelRatio;
             if(cur_pixelRatio > 1) renderer.setPixelRatio(1);
             else renderer.setPixelRatio(0.5);
-            controls.rotateSpeed = 0.6*3; //視点の速さ　遅れ修正
+
+            if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ　遅れ修正
+            else street_controls.rotateSpeed = 0.6*3;
 
             true_cnt = 0; false_cnt = 0;
             limited = true;
@@ -544,10 +582,15 @@ let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
 
-    move_camera();
-    move_groups();
-    renderer.render(scene, camera);
-    controls.update();
+    if(mode == "3d"){
+        move_camera();
+        move_groups();
+        renderer.render(scene, camera);
+        controls.update();
+    } else {
+        renderer.render(street_scene, street_camera);
+        street_controls.update();
+    }
 
     timeCheck();
     if(limited){ //30fps
