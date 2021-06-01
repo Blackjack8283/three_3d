@@ -20,9 +20,9 @@ let height = window.innerHeight;
 document.body.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
 const stage = document.getElementById("stage");
 
-let mode = "3d";
+let mode = "3d"; //3dモデルかstreet viewか
 
-//3dモデル用のscene作成
+/* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
 scene.name = undefined;
@@ -62,13 +62,13 @@ scene.add(camera);
 //半球光源 追加
 {
     const skyColor = 0xB1E1FF;  // light blue
-    const groundColor = 0xB97A20;  // brownish orange
-    const intensity = 0.8;
+    const groundColor = 0xcd853f;  // brownish orange
+    const intensity = 0.7;
     const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
     scene.add(light);
 }
 
-//平行光源　追加
+//平行光源 追加
 {
     const color = 0xFFFFFF;
     const intensity = 0.8;
@@ -89,15 +89,15 @@ scene.add(camera);
         scene.add( sphere );
     });
 }
-//ここまで3d用scene
+/*↑____________________________ここまで3d用scene__________________________________________________*/
 
-//ストリートビュー用のscene作成
+/*↓----------------------------ストリートビュー用のscene作成------------------------------------------*/
 const street_scene = new THREE.Scene();
-street_scene.background = new THREE.Color('skyblue');
+street_scene.background = new THREE.Color('black');
 street_scene.name = undefined;
 
 //カメラ
-const street_camera = new THREE.PerspectiveCamera(75, width / height, 0.5,9);
+const street_camera = new THREE.PerspectiveCamera(75, width / height, 0.01,50);
 street_camera.position.set(0.1, 0, 0);
 street_scene.add(street_camera);
 
@@ -112,15 +112,13 @@ street_scene.add(street_camera);
         street_scene.add( sphere );
     });
 }
-//半球光源 追加
+
+//環境光源追加
 {
-    const skyColor = 0xB1E1FF;  // light blue
-    const groundColor = 0xB97A20;  // brownish orange
-    const intensity = 0.8;
-    const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+    const light = new THREE.AmbientLight(0xFFFFFF, 1.0);
     street_scene.add(light);
 }
-//ここまでストリートビュー用のscene
+/*↑______________________________ここまでストリートビュー用のscene______________________________________*/
 
 //レンダラー作成
 const renderer = new THREE.WebGLRenderer({antialias: true});
@@ -130,8 +128,12 @@ renderer.setClearColor({color: 0x000000});
 // renderer.shadowMap.enabled = true;
 const element = renderer.domElement;
 
-const controls = create_controls(camera,element);
+const controls = create_controls(camera,element); //control 作成
+    controls.maxDistance = 220;
+    controls.minDistance = 0.3;
+    controls.maxPolarAngle = Math.PI/2 - 0.01;
 const street_controls = create_controls(street_camera,element);
+    street_controls.enableZoom = false;
 
 function create_controls(camera,element){
     const controls = new OrbitControls(camera, element);
@@ -141,11 +143,11 @@ function create_controls(camera,element){
     controls.enableZoom = true;
     controls.enablePan = false;
     controls.enableRotate = true;
-    controls.maxDistance = 220;
-    controls.minDistance = 0.3;
-    controls.maxPolarAngle = Math.PI/2 - 0.01;
+    // controls.maxDistance = 220;
+    // controls.minDistance = 0.3;
+    // controls.maxPolarAngle = Math.PI/2 - 0.01;
 
-    // 視点の速さ　(timeCheck関数内も)
+    // 視点の速さ (timeCheck関数内も変更)
     controls.dampingFactor = 0.2;
     controls.rotateSpeed = 0.6;
 
@@ -172,7 +174,7 @@ element.addEventListener("pointerup", (e) => {
 
 window.addEventListener("resize", handleResize, false);
 
-//ボタン　テクスチャ
+//ボタンのテクスチャ
 const button_tex = new THREE.TextureLoader().load('./images/button.png');
 let buttons = [];
 //posiは内部ではvector
@@ -226,7 +228,6 @@ let posi = [
 // }
 
 //obj追加
-const groups_len = 8;
 let groups = []; //こっちでgroup作ってあとでぶっこむ
 
 const dist = 14;
@@ -269,6 +270,7 @@ const urls = [
     [undefined,"3dMap_north_4F.obj"],
     [undefined,"3dMap_north_ceiling.obj"],
 ];
+const groups_len = urls.length;
 
 (async () => {
     for(let i = 0; i < groups_len; i++){
@@ -282,7 +284,7 @@ const urls = [
                 // groups[i].rotation.y += Math.PI * -.5;
 
 
-            } else if(5 <= i && i <= 8){
+            } else if(5 <= i && i <= 9){
                 groups[i].part_of = "north";
                 // groups[i].position.x += -120;
                 // groups[i].position.y += dist*(i-5);
@@ -296,7 +298,7 @@ const urls = [
 })();
 
 //ボタン生成
-function generate_buttons(number){
+function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
     if(0 <= number && number <= 4){
         array = posi[0][number];
@@ -317,8 +319,7 @@ function generate_buttons(number){
     }
 }
 
-// setTimeout(delete_buttons,1000);
-function delete_buttons(){
+function delete_buttons(){ //3dモデル操作中のみ実行
     const len = buttons.length;
     for(let i = 0; i < len; i++){
         scene.remove(buttons[i]);
@@ -358,6 +359,7 @@ function click(x,y) {
     mouse.y = -(y / height) * 2 + 1;
 
     const ray = new THREE.Raycaster;
+    //ここからmodeで分岐作って！！！ <====================
     ray.setFromCamera(mouse, camera);
     const bump = ray.intersectObjects(scene.children,true);
     if (bump.length != 0 && bump[0].object.parent.name == pre_elem_name && !turn_flag) {
@@ -369,7 +371,7 @@ function click(x,y) {
 
         //校舎クリック
         } else if(obj.name != undefined){
-            //スマホ救済用　青ボタン判定ゆるく
+            //スマホ救済用 青ボタン判定ゆるく
             const point = bump[0].point;
             let nearest = {dist: 1e9, position: undefined};
             //最も近いボタン求める
@@ -411,7 +413,7 @@ function click(x,y) {
 //カメラ回転関数
 let turn_flag = false;
 let turn_info; //obj
-function camera_trigger(oav){ //目標vector
+function camera_trigger(oav){ //3dモデル操作中のみ実行 oav:目標vector
     const ocv = camera.position;
     let acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
@@ -431,7 +433,7 @@ function camera_trigger(oav){ //目標vector
     turn_info = {ahv: ahv, oav: oav, targetv: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
 }
 
-function move_camera(){
+function move_camera(){ //3dの時のみ実行
     if(!turn_flag) return;
 
     let diff1;
@@ -458,11 +460,12 @@ function move_camera(){
         turn_info.rad = 0;
     } else if(!(diff1 || diff2 || diff3)){
         //終了
-        controls.enableRotate = true;
-        controls.enableZoom = true;
+        // controls.enableRotate = true;
+        // controls.enableZoom = true;
         turn_flag = false;
         console.log("終了");
         mode = "street";
+        // street_camera.position.set(0.1,0,0);
         return;
     }
 
@@ -482,10 +485,9 @@ function move_camera(){
                         .add(new THREE.Vector3(0,0.1,0)); //カメラと同様に足して平行に
 }
 
-const speed = 0.1;
 let move_groups_flag = false; //move_groupsを回すフラグ
 let add_later = false; //groupを動かし終わってからの動作のフラグ
-function move_groups(){
+function move_groups(){ //3dモデル操作中のみ実行
     if(!move_groups_flag) return;
 
     //上に行くものの中で最小の番号
@@ -499,14 +501,14 @@ function move_groups(){
         if(state == "closed" || groups[state].part_of != groups[i].part_of){ //非選択又は別校舎
             if(groups[i].position.y > groups[i].ori_position.y){
                 down = true;
-                groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, speed);
+                groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, 0.08);
             }
         } else if(i >= num && groups[i].position.y < max_alt+groups[i].ori_position.y){ //同校舎かつ上がる階
             up = true;
-            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+groups[i].ori_position.y, speed);
+            groups[i].position.y += ease_diff(groups[i].position.y, max_alt+groups[i].ori_position.y, 0.05);
         } else if(i < num && groups[i].position.y > groups[i].ori_position.y){ //同校舎かつ下がる階
             down = true;
-            groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, speed);
+            groups[i].position.y += ease_diff(groups[i].position.y, groups[i].ori_position.y, 0.08);
         }
     }
 
@@ -537,10 +539,10 @@ function handleResize() {
     //レンダラーサイズ変更
     renderer.setSize(width, height);
     //カメラアスペクト比変更
-    if(mode == "3d"){
+    if(mode == "3d"){ //3dモデル操作中
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
-    } else {
+    } else { //streetview操作中
         street_camera.aspect = width / height;
         street_camera.updateProjectionMatrix();
     }
@@ -582,12 +584,12 @@ let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
 
-    if(mode == "3d"){
+    if(mode == "3d"){ //3dモデル操作中
         move_camera();
         move_groups();
         renderer.render(scene, camera);
         controls.update();
-    } else {
+    } else { //street view 中
         renderer.render(street_scene, street_camera);
         street_controls.update();
     }
