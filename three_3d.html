@@ -102,13 +102,14 @@ street_camera.position.set(0.1, 0, 0);
 street_scene.add(street_camera);
 
 //球の作成
+let sphere;
 {
     const geometry = new THREE.SphereGeometry(8, 64, 64);
     geometry.scale(-1, 1, 1);
     const loader = new THREE.TextureLoader();
-    loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
+    loader.load('../images/image0-0.JPG', function(texture) {
         const material =  new THREE.MeshLambertMaterial({map: texture});
-        const sphere = new THREE.Mesh( geometry, material);
+        sphere = new THREE.Mesh( geometry, material);
         street_scene.add( sphere );
     });
 }
@@ -203,6 +204,16 @@ let posi = [
                 ]
             ];
 
+let posi_line = [];
+
+const connection = [
+    [0,1],
+    [1,2],
+    [2,3],
+    [3,4],
+    [4,5]
+];
+
 //posiをvectorに変換
 {
     function posi_to_vec(array){
@@ -210,8 +221,10 @@ let posi = [
         let ret_array = [];
         for(let i = 0; i < len; i++){
             if(typeof array[i] == "number"){ //数字の場合
-                return new THREE.Vector3(...array);
-            } else { //配列の場合　再帰
+                const vec = new THREE.Vector3(...array);
+                posi_line.push(vec);
+                return vec;
+            } else { //配列の場合 再帰
                 ret_array[i] = posi_to_vec(array[i]);
             }
         }
@@ -221,11 +234,13 @@ let posi = [
     posi = posi_to_vec(posi);
 }
 
-// class Groups{
-//     constructor(){
-
-//     }
-// }
+let map = new Array(posi_line.length);
+for (let i = 0; i < posi_line.length; ++i) map[i] = new Array();
+connection.forEach((val) => {
+    map[val[0]].push(val[1]);
+    map[val[1]].push(val[0]);
+});
+console.log(map);
 
 //obj追加
 let groups = []; //こっちでgroup作ってあとでぶっこむ
@@ -430,7 +445,7 @@ function camera_trigger(oav){ //3dモデル操作中のみ実行 oav:目標vecto
     controls.enableZoom = false;
 
     turn_flag = true;
-    turn_info = {ahv: ahv, oav: oav, targetv: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
+    turn_info = {ahv: ahv, oav: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
 }
 
 function move_camera(){ //3dの時のみ実行
@@ -465,6 +480,7 @@ function move_camera(){ //3dの時のみ実行
         turn_flag = false;
         console.log("終了");
         mode = "street";
+        console.log(street_camera.position);
         // street_camera.position.set(0.1,0,0);
         return;
     }
@@ -474,15 +490,14 @@ function move_camera(){ //3dの時のみ実行
                 .multiplyScalar(Math.sin(turn_info.theta));
     const xzv = turn_info.ahv.clone()
                 .multiplyScalar(Math.cos(turn_info.theta));
-    const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.02) ); //調整　真上防止
+    const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.02) ); //調整 真上防止
     camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,0.1,0)) ); //めり込み防止で足す
 
     //target 移動
-
-    controls.target.copy(turn_info.oav.clone().sub(turn_info.targetv)
+    // console.log(street_camera.position);
+    controls.target.copy(turn_info.oav.clone()
                         .multiplyScalar( turn_info.cnt2 )
-                        .add(turn_info.targetv))
-                        .add(new THREE.Vector3(0,0.1,0)); //カメラと同様に足して平行に
+                        .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
 }
 
 let move_groups_flag = false; //move_groupsを回すフラグ
@@ -564,7 +579,7 @@ function timeCheck() { //20fps未満は解像度下げる
             if(cur_pixelRatio > 1) renderer.setPixelRatio(1);
             else renderer.setPixelRatio(0.5);
 
-            if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ　遅れ修正
+            if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ 遅れ修正
             else street_controls.rotateSpeed = 0.6*3;
 
             true_cnt = 0; false_cnt = 0;
@@ -583,7 +598,6 @@ function timeCheck() { //20fps未満は解像度下げる
 let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
-
     if(mode == "3d"){ //3dモデル操作中
         move_camera();
         move_groups();
