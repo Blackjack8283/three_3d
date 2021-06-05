@@ -36,7 +36,7 @@ scene.add(camera);
     const planeSize = 512;
 
     //画像
-    const texture = new THREE.TextureLoader().load('./images/grass.png');
+    const texture = new THREE.TextureLoader().load('../images/grass.png');
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.magFilter = THREE.LinearMipmapLinearFilter;
@@ -101,17 +101,20 @@ const street_camera = new THREE.PerspectiveCamera(75, width / height, 0.01,50);
 street_camera.position.set(0.1, 0, 0);
 street_scene.add(street_camera);
 
-//球の作成
+//画像を貼る球の作成
 let sphere;
 {
     const geometry = new THREE.SphereGeometry(8, 64, 64);
     geometry.scale(-1, 1, 1);
-    const loader = new THREE.TextureLoader();
-    loader.load('../images/image0-0.JPG', function(texture) {
-        const material =  new THREE.MeshLambertMaterial({map: texture});
-        sphere = new THREE.Mesh( geometry, material);
-        street_scene.add( sphere );
-    });
+    // const loader = new THREE.TextureLoader();
+    // loader.load('../images/image0-0.JPG', function(texture) {
+    //     const material =  new THREE.MeshLambertMaterial({map: texture});
+    //     sphere = new THREE.Mesh( geometry, material);
+    //     street_scene.add( sphere );
+    // });
+    const material =  new THREE.MeshLambertMaterial();
+    sphere = new THREE.Mesh( geometry, material);
+    street_scene.add( sphere );
 }
 
 //環境光源追加
@@ -144,9 +147,6 @@ function create_controls(camera,element){
     controls.enableZoom = true;
     controls.enablePan = false;
     controls.enableRotate = true;
-    // controls.maxDistance = 220;
-    // controls.minDistance = 0.3;
-    // controls.maxPolarAngle = Math.PI/2 - 0.01;
 
     // 視点の速さ (timeCheck関数内も変更)
     controls.dampingFactor = 0.2;
@@ -157,28 +157,25 @@ function create_controls(camera,element){
 
 stage.appendChild(element);
 
+//クリック
 element.addEventListener("pointerdown", (e) => {
-    // if (!check){
-        const x = e.clientX - stage.offsetLeft;
-        const y = e.clientY - stage.offsetTop;
-        pre_click(x,y);
-    // }
+    const x = e.clientX - stage.offsetLeft;
+    const y = e.clientY - stage.offsetTop;
+    pre_click(x,y);
 }, false);
 
 element.addEventListener("pointerup", (e) => {
-    // if (!check){
-        const x = e.clientX - stage.offsetLeft;
-        const y = e.clientY - stage.offsetTop;
-        click(x,y);
-    // } else check = false;
+    const x = e.clientX - stage.offsetLeft;
+    const y = e.clientY - stage.offsetTop;
+    click(x,y);
 }, false);
 
 window.addEventListener("resize", handleResize, false);
 
 //ボタンのテクスチャ
-const button_tex = new THREE.TextureLoader().load('./images/button.png');
+const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
-//posiは内部ではvector
+
 let posi = [
             //南側校舎 :[0]
                 [
@@ -204,8 +201,6 @@ let posi = [
                 ]
             ];
 
-let posi_line = [];
-
 const connection = [
     [0,1],
     [1,2],
@@ -214,33 +209,154 @@ const connection = [
     [4,5]
 ];
 
-//posiをvectorに変換
+let posi_line = [];
+let posi_number = [];
 {
-    function posi_to_vec(array){
+    //posiをvectorに変換,番号記入
+    function posi_all(array,func){
         const len = array.length;
         let ret_array = [];
         for(let i = 0; i < len; i++){
             if(typeof array[i] == "number"){ //数字の場合
-                const vec = new THREE.Vector3(...array);
-                posi_line.push(vec);
-                return vec;
+                return func(array);
             } else { //配列の場合 再帰
-                ret_array[i] = posi_to_vec(array[i]);
+                ret_array[i] = posi_all(array[i],func);
             }
         }
         return ret_array; //空白の場合は空配列
     }
+    //ベクトルに変換用
+    function func1(array){
+        const vec = new THREE.Vector3(...array);
+        posi_line.push(vec);
+        return vec;
+    }
+    //数字カウント用
+    let cnt = 0;
+    function func2(array){
+        cnt++;
+        return cnt-1;
+    }
 
-    posi = posi_to_vec(posi);
+    posi_number = posi_all(posi,func2);
+    posi = posi_all(posi,func1);
+    console.log(posi_number);
 }
 
+//connectionの整理
 let map = new Array(posi_line.length);
 for (let i = 0; i < posi_line.length; ++i) map[i] = new Array();
 connection.forEach((val) => {
     map[val[0]].push(val[1]);
     map[val[1]].push(val[0]);
 });
-console.log(map);
+
+//画像読み込み(仮)
+let images = [];
+(async () => {
+    let provec = [];
+    function threeload(url,number,mode){
+        return new Promise((resolve)=>{
+            const loader = new THREE.TextureLoader().load(url,(tex)=>{
+                if(mode != -1){
+                    if(mode == 0) images[number] = [];
+                    images[number][mode] = tex;
+                } else images[number] = tex;
+                // cnt++;
+                // mypro.value = Math.floor(cnt/(num+double+1+imglen)*100);
+                // prospa.innerText = Math.floor(cnt/(num+double+1+imglen)*100) + "%";
+                resolve();
+            });
+        });
+    }
+    // function imgload(number){
+    //     return new Promise((resolve)=>{
+    //         let img = new Image();
+    //         img.src = srcs[number];
+    //         img.addEventListener("load", ()=>{
+    //             images[num+1+number] = img;
+    //             cnt++;
+    //             mypro.value = Math.floor(cnt/(num+double+1+imglen)*100);
+    //             prospa.innerText = Math.floor(cnt/(num+double+1+imglen)*100) + "%";
+    //             resolve();
+    //         });
+    //     });
+    // }
+    async function wait(){
+        await Promise.all(provec);
+        provec = [];
+    } 
+    let num = 5;
+    for(let i = 0; i < num; i++){
+        for(let j = 0; j < 1; j++){
+            provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
+            if((i+1) % 5 == 0 || i+1 == num) await wait();
+        }
+    }
+    // for (let i = 0; i < imglen; i++){
+    //     provec.push(imgload(i));
+    //     /* if((i+1) % 5 == 0 || i+1 == num) */ 
+    //     await wait();
+    // }
+})();
+
+//矢印読み込み
+const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
+let arrows, fixedposi;
+//矢印生成
+function generateArrows(src) {
+    const geo = new THREE.BoxGeometry(0.5, 0, 0.5);
+    const mate = new THREE.MeshBasicMaterial({ map: arrow_image, transparent: true });
+
+    arrows = []; fixedposi = [];
+    for (let i = 0; i < map[src].length; ++i) {
+        let arrow = new THREE.Mesh(geo, mate);
+
+        arrow.name = map[src][i];
+        arrows.push(arrow);
+
+        let xmove = posi[map[src][i]][0] - posi[src][0],
+            zmove = posi[map[src][i]][1] - posi[src][1];
+
+        //半径
+        let r = 0.75;
+        fixedposi.push([xmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove)), zmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove))]);
+
+        arrow.rotation.y = posi_to_theta(xmove,zmove);
+
+        street_scene.add(arrow);
+    }
+}
+
+//逆三角関数
+function posi_to_theta(x,z){
+    let rotate;
+    x *= -1; z *= -1;
+    if (z == 0) {
+        if (x >= 0) rotate = Math.PI / 2;
+        else rotate = Math.PI * 3 / 2;
+    } else {
+        rotate = Math.atan(x/z);
+        if (rotate * x < 0 || (rotate == 0 && z < 0)) rotate += Math.PI;
+        else rotate += Math.PI * 2;
+    }
+    return rotate;
+}
+
+//画面変更・位置更新
+function street_move(to){
+    sphere.material.map = images[to][0];
+    sphere.material.needsUpdate = true;
+    // cur = to;
+    // floor = posi[to][2];
+
+    //矢印・minimap更新
+    arrows.forEach((val) => {street_scene.remove(val);});
+    generateArrows(to);
+    // cancelAnimationFrame(callbackdraw);
+    // draw();
+    // mini_button(to);
+}
 
 //obj追加
 let groups = []; //こっちでgroup作ってあとでぶっこむ
@@ -249,6 +365,7 @@ const dist = 14;
 const max_alt = 100;
 let state = "closed";
 
+//オブジェクト読み込み
 function load_obj(mtl_file_name, obj_file_name){
     if(mtl_file_name == undefined){ //マテリアルないとき
         return new Promise((resolve,reject) => {
@@ -294,15 +411,9 @@ const groups_len = urls.length;
             groups[i].name = i; //番号
             if(0 <= i && i <= 4){
                 groups[i].part_of = "south"; //建物識別
-                // groups[i].position.y +=  dist*i;
                 groups[i].scale.set(3,3,3);
-                // groups[i].rotation.y += Math.PI * -.5;
-
-
             } else if(5 <= i && i <= 9){
                 groups[i].part_of = "north";
-                // groups[i].position.x += -120;
-                // groups[i].position.y += dist*(i-5);
                 groups[i].scale.set(3,3,3);
             }
             groups[i].ori_position = groups[i].position.clone();
@@ -312,7 +423,7 @@ const groups_len = urls.length;
     loaded = true;
 })();
 
-//ボタン生成
+//青ボタン生成
 function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
     if(0 <= number && number <= 4){
@@ -357,7 +468,6 @@ function pre_click(x,y){
     const ray = new THREE.Raycaster;
     ray.setFromCamera(mouse, camera);
     const bump = ray.intersectObjects(scene.children,true); //<=第二引数trueで下位のobjectも
-    // console.log(bump[0].point);
 
     if(bump.length > 0) pre_elem_name = bump[0].object.parent.name;
 }
@@ -382,6 +492,7 @@ function click(x,y) {
 
         //青ボタンクリック
         if(bump[0].object.name == "button"){
+            
             camera_trigger(bump[0].object.position);
 
         //校舎クリック
@@ -425,9 +536,10 @@ function click(x,y) {
     }
 }
 
-//カメラ回転関数
 let turn_flag = false;
 let turn_info; //obj
+
+//カメラ回転関数
 function camera_trigger(oav){ //3dモデル操作中のみ実行 oav:目標vector
     const ocv = camera.position;
     let acv = ocv.clone().sub(oav);
@@ -480,8 +592,7 @@ function move_camera(){ //3dの時のみ実行
         turn_flag = false;
         console.log("終了");
         mode = "street";
-        console.log(street_camera.position);
-        // street_camera.position.set(0.1,0,0);
+        move();
         return;
     }
 
@@ -494,7 +605,6 @@ function move_camera(){ //3dの時のみ実行
     camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,0.1,0)) ); //めり込み防止で足す
 
     //target 移動
-    // console.log(street_camera.position);
     controls.target.copy(turn_info.oav.clone()
                         .multiplyScalar( turn_info.cnt2 )
                         .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
@@ -534,7 +644,6 @@ function move_groups(){ //3dモデル操作中のみ実行
             generate_buttons(state);
             add_later = false;
         }
-        // console.log(buttons);
     }
 }
 
