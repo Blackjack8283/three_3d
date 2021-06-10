@@ -176,30 +176,68 @@ window.addEventListener("resize", handleResize, false);
 const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
 
-let posi = [
-            //南側校舎 :[0]
-                [
-                    [[50,17.5,20],[50,17.5,10],[50,17.5,0],[50,17.5,-10],[50,17.5,-20],[50,17.5,-30]], //1F :[0][0]
-                    [[50,31.5,20],[50,31.5,10],[50,31.5,0],[50,31.5,-10],[50,31.5,-20],[50,31.5,-30]], //2F :[0][1]
-                    [[50,45.5,20],[50,45.5,10],[50,45.5,0],[50,45.5,-10],[50,45.5,-20],[50,45.5,-30]], //3F :[0][2]
-                    [[50,59.5,20],[50,59.5,10],[50,59.5,0],[50,59.5,-10],[50,59.5,-20],[50,59.5,-30]], //4F :[0][3]
-                    [] //屋上
-                ],
-            //北側校舎 :[1]
-                [
-                    [[-50,17.5,20],[-50,17.5,10],[-50,17.5,0],[-50,17.5,-10],[-50,17.5,-20],[-50,17.5,-30]], //1F :[1][0]
-                    [[-50,31.5,20],[-50,31.5,10],[-50,31.5,0],[-50,31.5,-10],[-50,31.5,-20],[-50,31.5,-30]], //2F :[1][1]
-                    [[-50,45.5,20],[-50,45.5,10],[-50,45.5,0],[-50,45.5,-10],[-50,45.5,-20],[-50,45.5,-30]], //3F :[1][2]
-                    [[-50,59.5,20],[-50,59.5,10],[-50,59.5,0],[-50,59.5,-10],[-50,59.5,-20],[-50,59.5,-30]], //4F :[1][3]
-                    [] //屋上
-                ],
-            //講堂
-                [
-                ],
-            //体育館・食堂
-                [
-                ]
-            ];
+let posi_line = [
+    [50,17.5,20, 0,0],
+    [50,17.5,10, 0,0],
+    [50,17.5,0,  0,0],
+    [50,17.5,-10,0,0],
+    [50,17.5,-20,0,0], //5
+    [50,17.5,-30,0,0],
+    [50,31.5,20, 0,1],
+    [50,31.5,10, 0,1],
+    [50,31.5,0 , 0,1],
+    [50,31.5,-10, 0,1], //10
+    [50,31.5,-20, 0,1],
+    [50,31.5,-30, 0,1],
+    [50,45.5,20, 0,2],
+    [50,45.5,10, 0,2],
+    [50,45.5,0 , 0,2], //15
+    [50,45.5,-10, 0,2],
+    [50,45.5,-20, 0,2],
+    [50,45.5,-30, 0,2]
+];
+
+// let posi = [
+//             //南側校舎 :[0]
+//                 [
+//                     [[50,17.5,20],[50,17.5,10],[50,17.5,0],[50,17.5,-10],[50,17.5,-20],[50,17.5,-30]], //1F :[0][0]
+//                     [[50,31.5,20],[50,31.5,10],[50,31.5,0],[50,31.5,-10],[50,31.5,-20],[50,31.5,-30]], //2F :[0][1]
+//                     [[50,45.5,20],[50,45.5,10],[50,45.5,0],[50,45.5,-10],[50,45.5,-20],[50,45.5,-30]], //3F :[0][2]
+//                     [[50,59.5,20],[50,59.5,10],[50,59.5,0],[50,59.5,-10],[50,59.5,-20],[50,59.5,-30]], //4F :[0][3]
+//                     [] //屋上
+//                 ],
+//             //北側校舎 :[1]
+//                 [
+//                     [[-50,17.5,20],[-50,17.5,10],[-50,17.5,0],[-50,17.5,-10],[-50,17.5,-20],[-50,17.5,-30]], //1F :[1][0]
+//                     [[-50,31.5,20],[-50,31.5,10],[-50,31.5,0],[-50,31.5,-10],[-50,31.5,-20],[-50,31.5,-30]], //2F :[1][1]
+//                     [[-50,45.5,20],[-50,45.5,10],[-50,45.5,0],[-50,45.5,-10],[-50,45.5,-20],[-50,45.5,-30]], //3F :[1][2]
+//                     [[-50,59.5,20],[-50,59.5,10],[-50,59.5,0],[-50,59.5,-10],[-50,59.5,-20],[-50,59.5,-30]], //4F :[1][3]
+//                     [] //屋上
+//                 ],
+//             //講堂
+//                 [
+//                 ],
+//             //体育館・食堂
+//                 [
+//                 ]
+//             ];
+
+let posi = [ //配列
+    [ [],[],[],[] ],
+    [ [],[],[],[] ]
+];
+
+let posi_line_len = posi_line.length;
+for(let i=0; i<posi_line_len; ++i){
+    // if(complaints_from_a_monkey.includes(i)) continue;
+    // let j = 0;
+    // if(posi[i][2] == -1) continue;
+    // if(posi[i][1] > 100) j++;
+    posi[ posi_line[i][3] ][ posi_line[i][4] ].push([ posi_line[i][0], posi_line[i][1], posi_line[i][2], i]);
+    // if(posi[i][3] != 1) double++;
+}
+
+console.log(posi);
 
 const connection = [
     [0,1],
@@ -209,39 +247,39 @@ const connection = [
     [4,5]
 ];
 
-let posi_line = [];
-let posi_number = [];
-{
-    //posiをvectorに変換,番号記入
-    function posi_all(array,func){
-        const len = array.length;
-        let ret_array = [];
-        for(let i = 0; i < len; i++){
-            if(typeof array[i] == "number"){ //数字の場合
-                return func(array);
-            } else { //配列の場合 再帰
-                ret_array[i] = posi_all(array[i],func);
-            }
-        }
-        return ret_array; //空白の場合は空配列
-    }
-    //ベクトルに変換用
-    function func1(array){
-        const vec = new THREE.Vector3(...array);
-        posi_line.push(vec);
-        return vec;
-    }
-    //数字カウント用
-    let cnt = 0;
-    function func2(array){
-        cnt++;
-        return cnt-1;
-    }
+// let posi_line = [];
+// let posi_number = [];
+// {
+//     //posiをvectorに変換,番号記入
+//     function posi_all(array,func){
+//         const len = array.length;
+//         let ret_array = [];
+//         for(let i = 0; i < len; i++){
+//             if(typeof array[i] == "number"){ //数字の場合
+//                 return func(array);
+//             } else { //配列の場合 再帰
+//                 ret_array[i] = posi_all(array[i],func);
+//             }
+//         }
+//         return ret_array; //空白の場合は空配列
+//     }
+//     //ベクトルに変換用
+//     function func1(array){
+//         const vec = new THREE.Vector3(...array);
+//         posi_line.push(vec);
+//         return vec;
+//     }
+//     //数字カウント用
+//     let cnt = 0;
+//     function func2(array){
+//         cnt++;
+//         return cnt-1;
+//     }
 
-    posi_number = posi_all(posi,func2);
-    posi = posi_all(posi,func1);
-    console.log(posi_number);
-}
+//     posi_number = posi_all(posi,func2);
+//     posi = posi_all(posi,func1);
+//     console.log(posi_number);
+// }
 
 //connectionの整理
 let map = new Array(posi_line.length);
@@ -431,6 +469,7 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
     } else if(5 <= number && number <= 8){
         array = posi[1][number-5];
     }
+    console.log(array);
 
     for(let vec of array){
         const planeGeo = new THREE.PlaneGeometry(2, 2); //サイズ
@@ -438,7 +477,7 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
         const mesh = new THREE.Mesh(planeGeo, planeMat);
         mesh.rotation.x = Math.PI * -.5;
         //sceneに追加
-        mesh.position.copy(vec);
+        mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
         mesh.name = "button";
         buttons.push(mesh);
         scene.add(mesh);
@@ -558,6 +597,21 @@ function camera_trigger(oav){ //3dモデル操作中のみ実行 oav:目標vecto
 
     turn_flag = true;
     turn_info = {ahv: ahv, oav: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
+}
+
+function move(){
+    //画面変更・位置更新
+    sphere.material.map = images[to][(mode+1)*(posi[to][3]-1)/2];
+    sphere.material.needsUpdate = true;
+    cur = to;
+    floor = posi[to][2];
+
+    //矢印・minimap更新
+    arrows.forEach((val) => {scene.remove(val);});
+    generateArrows(to);
+    // cancelAnimationFrame(callbackdraw);
+    // draw();
+    // mini_button(to);
 }
 
 function move_camera(){ //3dの時のみ実行
