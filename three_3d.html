@@ -21,6 +21,7 @@ document.body.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
 const stage = document.getElementById("stage");
 
 let mode = "3d"; //3dモデルかstreet viewか
+let street_mode = 1; //通常モード:1/音展モード:-1
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -381,21 +382,6 @@ function posi_to_theta(x,z){
     return rotate;
 }
 
-//画面変更・位置更新
-function street_move(to){
-    sphere.material.map = images[to][0];
-    sphere.material.needsUpdate = true;
-    // cur = to;
-    // floor = posi[to][2];
-
-    //矢印・minimap更新
-    arrows.forEach((val) => {street_scene.remove(val);});
-    generateArrows(to);
-    // cancelAnimationFrame(callbackdraw);
-    // draw();
-    // mini_button(to);
-}
-
 //obj追加
 let groups = []; //こっちでgroup作ってあとでぶっこむ
 
@@ -478,12 +464,14 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
         mesh.rotation.x = Math.PI * -.5;
         //sceneに追加
         mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
-        mesh.name = "button";
+        // mesh.name = `button_${vec[3]}`;
+        mesh.name = `B_${0}`;
         buttons.push(mesh);
         scene.add(mesh);
     }
 }
 
+//青ボタン削除
 function delete_buttons(){ //3dモデル操作中のみ実行
     const len = buttons.length;
     for(let i = 0; i < len; i++){
@@ -530,12 +518,14 @@ function click(x,y) {
         const obj = bump[0].object.parent;
 
         //青ボタンクリック
-        if(bump[0].object.name == "button"){
+        console.log(bump[0].object.name);
+        if(bump[0].object.name[0] == "B"){
             
-            camera_trigger(bump[0].object.position);
-
-        //校舎クリック
+            camera_trigger(bump[0].object);
+            
+        //校舎クリック obj.name: 0,1,2,...
         } else if(obj.name != undefined){
+            // console.log(bump[0].object.name);
             //スマホ救済用 青ボタン判定ゆるく
             const point = bump[0].point;
             let nearest = {dist: 1e9, position: undefined};
@@ -578,8 +568,9 @@ function click(x,y) {
 let turn_flag = false;
 let turn_info; //obj
 
-//カメラ回転関数
-function camera_trigger(oav){ //3dモデル操作中のみ実行 oav:目標vector
+//move_camera関数のトリガー(計算)
+function camera_trigger(button){ //3dモデル操作中のみ実行 oav:目標vector
+    const oav = button.position;
     const ocv = camera.position;
     let acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
@@ -591,27 +582,14 @@ function camera_trigger(oav){ //3dモデル操作中のみ実行 oav:目標vecto
     if(oav.y > ocv.y) theta *= -1;
     ahv.normalize();
 
+    const to = Number(button.name.split("_")[1]);
+
     //移行用
     controls.enableRotate = false;
     controls.enableZoom = false;
 
     turn_flag = true;
-    turn_info = {ahv: ahv, oav: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25};
-}
-
-function move(){
-    //画面変更・位置更新
-    sphere.material.map = images[to][(mode+1)*(posi[to][3]-1)/2];
-    sphere.material.needsUpdate = true;
-    cur = to;
-    floor = posi[to][2];
-
-    //矢印・minimap更新
-    arrows.forEach((val) => {scene.remove(val);});
-    generateArrows(to);
-    // cancelAnimationFrame(callbackdraw);
-    // draw();
-    // mini_button(to);
+    turn_info = {ahv: ahv, oav: oav, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
 }
 
 function move_camera(){ //3dの時のみ実行
@@ -646,7 +624,7 @@ function move_camera(){ //3dの時のみ実行
         turn_flag = false;
         console.log("終了");
         mode = "street";
-        move();
+        street_move(turn_info.to);
         return;
     }
 
@@ -662,6 +640,22 @@ function move_camera(){ //3dの時のみ実行
     controls.target.copy(turn_info.oav.clone()
                         .multiplyScalar( turn_info.cnt2 )
                         .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
+}
+
+//画面変更・位置更新
+function street_move(to){
+    if(street_mode == 1) sphere.material.map = images[to][0];
+    else sphere.material.map = images[to][1];
+    sphere.material.needsUpdate = true;
+    // cur = to;
+    // floor = posi[to][2];
+
+    //矢印・minimap更新
+    arrows.forEach((val) => {street_scene.remove(val);});
+    generateArrows(to);
+    // cancelAnimationFrame(callbackdraw);
+    // draw();
+    // mini_button(to);
 }
 
 let move_groups_flag = false; //move_groupsを回すフラグ
