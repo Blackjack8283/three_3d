@@ -49,8 +49,8 @@ scene.add(camera);
     const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
     //マテリアル
     const planeMat = new THREE.MeshPhongMaterial({
-      map: texture,
-      side: THREE.DoubleSide //両面描画
+        map: texture,
+        side: THREE.DoubleSide //両面描画
     });
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
@@ -133,15 +133,17 @@ renderer.setClearColor({color: 0x000000});
 // renderer.shadowMap.enabled = true;
 const element = renderer.domElement;
 
+
 const controls = create_controls(camera,element); //control 作成
     controls.maxDistance = 220;
     controls.minDistance = 0.3;
     controls.maxPolarAngle = Math.PI/2 - 0.01;
 const street_controls = create_controls(street_camera,element);
     street_controls.enableZoom = false;
+    street_controls.enableDamping = false;
 
-function create_controls(camera,element){
-    const controls = new OrbitControls(camera, element);
+function create_controls(cam,elem){
+    const controls = new OrbitControls(cam, elem);
     controls.target.set(0, 0, 0);
     //各種設定
     controls.enableDamping = true;
@@ -341,7 +343,7 @@ let images = [];
 
 //矢印読み込み
 const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
-let arrows, fixedposi;
+let arrows = [], fixedposi = [];
 //矢印生成
 function generateArrows(src) {
     const geo = new THREE.BoxGeometry(0.5, 0, 0.5);
@@ -354,12 +356,13 @@ function generateArrows(src) {
         arrow.name = map[src][i];
         arrows.push(arrow);
 
-        let xmove = posi[map[src][i]][0] - posi[src][0],
-            zmove = posi[map[src][i]][1] - posi[src][1];
-
+        let xmove = posi_line[map[src][i]][0] - posi_line[src][0],
+            zmove = posi_line[map[src][i]][2] - posi_line[src][2];
+        console.log(xmove,zmove);
         //半径
         let r = 0.75;
         fixedposi.push([xmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove)), zmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove))]);
+        console.log(fixedposi);
 
         arrow.rotation.y = posi_to_theta(xmove,zmove);
 
@@ -450,7 +453,8 @@ const groups_len = urls.length;
 //青ボタン生成
 function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
-    if(0 <= number && number <= 4){
+    if(number == 4 || number == 9) return;
+    if(0 <= number && number <= 3){
         array = posi[0][number];
     } else if(5 <= number && number <= 8){
         array = posi[1][number-5];
@@ -465,7 +469,7 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
         //sceneに追加
         mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
         // mesh.name = `button_${vec[3]}`;
-        mesh.name = `B_${0}`;
+        mesh.name = `Button_${vec[3]}`;
         buttons.push(mesh);
         scene.add(mesh);
     }
@@ -519,7 +523,7 @@ function click(x,y) {
 
         //青ボタンクリック
         console.log(bump[0].object.name);
-        if(bump[0].object.name[0] == "B"){
+        if(bump[0].object.name.split("_")[0] == "Button"){
             
             camera_trigger(bump[0].object);
             
@@ -594,7 +598,6 @@ function camera_trigger(button){ //3dモデル操作中のみ実行 oav:目標ve
 
 function move_camera(){ //3dの時のみ実行
     if(!turn_flag) return;
-
     let diff1;
     //初め=>45度
     if(turn_info.rad) diff1 = ease_diff(turn_info.theta, turn_info.rad, 0.01);
@@ -622,8 +625,11 @@ function move_camera(){ //3dの時のみ実行
         // controls.enableRotate = true;
         // controls.enableZoom = true;
         turn_flag = false;
+        // street_controls.enableDamping = false;
         console.log("終了");
         mode = "street";
+        street_camera.position.set(0.1,0,0);
+        street_controls.enableDamping = true;
         street_move(turn_info.to);
         return;
     }
@@ -647,10 +653,13 @@ function street_move(to){
     if(street_mode == 1) sphere.material.map = images[to][0];
     else sphere.material.map = images[to][1];
     sphere.material.needsUpdate = true;
+    // street_controls.enableDamping = false;
+    // street_controls.dampingFactor = 0.2;
     // cur = to;
     // floor = posi[to][2];
 
     //矢印・minimap更新
+    console.log(arrows);
     arrows.forEach((val) => {street_scene.remove(val);});
     generateArrows(to);
     // cancelAnimationFrame(callbackdraw);
@@ -763,6 +772,11 @@ function render() {
     } else { //street view 中
         renderer.render(street_scene, street_camera);
         street_controls.update();
+
+        let x = street_camera.position.x, z = street_camera.position.z;
+        x *= -1; z *= -1;
+        //矢印の移動
+        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+fixedposi[i][0], -1.3-i*0.001, 15*z+fixedposi[i][1]);
     }
 
     timeCheck();
