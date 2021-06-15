@@ -175,6 +175,9 @@ element.addEventListener("pointerup", (e) => {
 
 window.addEventListener("resize", handleResize, false);
 
+window.addEventListener("keydown", ()=>{console.log(street_camera.position.x, street_camera.position.z);}, false);
+// window.addEventListener("keydown", ()=>{console.log(camera.position.x, camera.position.z);}, false);
+
 //ボタンのテクスチャ
 const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
@@ -343,13 +346,13 @@ let images = [];
 
 //矢印読み込み
 const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
-let arrows = [], fixedposi = [];
+let arrows = [], originposi = [];
 //矢印生成
 function generateArrows(src) {
     const geo = new THREE.BoxGeometry(0.5, 0, 0.5);
     const mate = new THREE.MeshBasicMaterial({ map: arrow_image, transparent: true });
 
-    arrows = []; fixedposi = [];
+    arrows = []; originposi = [];
     for (let i = 0; i < map[src].length; ++i) {
         let arrow = new THREE.Mesh(geo, mate);
 
@@ -361,26 +364,40 @@ function generateArrows(src) {
         console.log(xmove,zmove);
         //半径
         let r = 0.75;
-        fixedposi.push([xmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove)), zmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove))]);
-        console.log(fixedposi);
+        originposi.push([xmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove)), zmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove))]);
+        console.log(originposi);
 
-        arrow.rotation.y = posi_to_theta(xmove,zmove);
+        arrow.rotation.y = posi_to_theta(-zmove,xmove);
 
         street_scene.add(arrow);
     }
 }
 
 //逆三角関数
-function posi_to_theta(x,z){
+// function posi_to_theta(x,z){
+//     let rotate;
+//     x *= -1; z *= -1;
+//     if (z == 0) {
+//         if (x >= 0) rotate = Math.PI / 2;
+//         else rotate = Math.PI * 3 / 2;
+//     } else {
+//         rotate = Math.atan(x/z);
+//         if (rotate * x < 0 || (rotate == 0 && z < 0)) rotate += Math.PI;
+//         else rotate += Math.PI * 2;
+//     }
+//     return rotate;
+// }
+
+function posi_to_theta(x,z){ //上方向x軸正, 右方向z軸正
     let rotate;
-    x *= -1; z *= -1;
+    // x *= -1; z *= -1;
     if (z == 0) {
         if (x >= 0) rotate = Math.PI / 2;
         else rotate = Math.PI * 3 / 2;
     } else {
         rotate = Math.atan(x/z);
-        if (rotate * x < 0 || (rotate == 0 && z < 0)) rotate += Math.PI;
-        else rotate += Math.PI * 2;
+        if (z < 0) rotate += Math.PI;
+        else if(rotate < 0) rotate += Math.PI * 2;
     }
     return rotate;
 }
@@ -776,7 +793,7 @@ function render() {
         let x = street_camera.position.x, z = street_camera.position.z;
         x *= -1; z *= -1;
         //矢印の移動
-        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+fixedposi[i][0], -1.3-i*0.001, 15*z+fixedposi[i][1]);
+        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+originposi[i][0], -1.3-i*0.001, 15*z+originposi[i][1]);
     }
 
     timeCheck();
