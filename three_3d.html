@@ -175,7 +175,8 @@ element.addEventListener("pointerup", (e) => {
 
 window.addEventListener("resize", handleResize, false);
 
-window.addEventListener("keydown", ()=>{console.log(street_camera.position.x, street_camera.position.z);}, false);
+// window.addEventListener("keydown", ()=>{console.log(posi_to_theta(camera.position.z, camera.position.x));}, false);
+// window.addEventListener("keydown", ()=>{console.log(street_camera.position.x, street_camera.position.z);}, false);
 // window.addEventListener("keydown", ()=>{console.log(camera.position.x, camera.position.z);}, false);
 
 //ボタンのテクスチャ
@@ -348,7 +349,7 @@ let images = [];
 const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
 let arrows = [], originposi = [];
 //矢印生成
-function generateArrows(src) {
+function generate_arrows(src) {
     const geo = new THREE.BoxGeometry(0.5, 0, 0.5);
     const mate = new THREE.MeshBasicMaterial({ map: arrow_image, transparent: true });
 
@@ -361,13 +362,14 @@ function generateArrows(src) {
 
         let xmove = posi_line[map[src][i]][0] - posi_line[src][0],
             zmove = posi_line[map[src][i]][2] - posi_line[src][2];
-        console.log(xmove,zmove);
+
+        arrow.rotation.y = posi_to_theta(zmove,xmove)-Math.PI*0.5;
+        console.log(arrow.rotation.y);
+        [xmove, zmove] = [zmove, -xmove]; //swap
         //半径
         let r = 0.75;
         originposi.push([xmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove)), zmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove))]);
         console.log(originposi);
-
-        arrow.rotation.y = posi_to_theta(-zmove,xmove);
 
         street_scene.add(arrow);
     }
@@ -388,15 +390,15 @@ function generateArrows(src) {
 //     return rotate;
 // }
 
-function posi_to_theta(x,z){ //上方向x軸正, 右方向z軸正
+function posi_to_theta(x,y){
     let rotate;
     // x *= -1; z *= -1;
-    if (z == 0) {
-        if (x >= 0) rotate = Math.PI / 2;
-        else rotate = Math.PI * 3 / 2;
+    if (x == 0) {
+        if (y >= 0) rotate = Math.PI * 0.5;
+        else rotate = Math.PI * 1.5;
     } else {
-        rotate = Math.atan(x/z);
-        if (z < 0) rotate += Math.PI;
+        rotate = Math.atan(y/x);
+        if (x < 0) rotate += Math.PI;
         else if(rotate < 0) rotate += Math.PI * 2;
     }
     return rotate;
@@ -549,13 +551,13 @@ function click(x,y) {
             // console.log(bump[0].object.name);
             //スマホ救済用 青ボタン判定ゆるく
             const point = bump[0].point;
-            let nearest = {dist: 1e9, position: undefined};
+            let nearest = {dist: 1e9, button: undefined};
             //最も近いボタン求める
             for(let button of buttons){
                 const new_dist = button.position.clone().sub(point).length();
                 if(nearest.dist > new_dist){
                     nearest.dist = new_dist;
-                    nearest.position = button.position;
+                    nearest.button = button;
                 }
             }
             // console.log(nearest.dist);
@@ -638,14 +640,17 @@ function move_camera(){ //3dの時のみ実行
     if(!diff1 && turn_info.rad){
         turn_info.rad = 0;
     } else if(!(diff1 || diff2 || diff3)){
-        //終了
+        //ズーム終了時の処理
         // controls.enableRotate = true;
         // controls.enableZoom = true;
         turn_flag = false;
         // street_controls.enableDamping = false;
         console.log("終了");
         mode = "street";
-        street_camera.position.set(0.1,0,0);
+        const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
+        console.log(theta);
+        street_camera.position.set(0.1*Math.cos(theta),0,-0.1*Math.sin(theta));
+        console.log(street_camera.position);
         street_controls.enableDamping = true;
         street_move(turn_info.to);
         return;
@@ -678,7 +683,7 @@ function street_move(to){
     //矢印・minimap更新
     console.log(arrows);
     arrows.forEach((val) => {street_scene.remove(val);});
-    generateArrows(to);
+    generate_arrows(to);
     // cancelAnimationFrame(callbackdraw);
     // draw();
     // mini_button(to);
