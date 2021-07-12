@@ -1,4 +1,329 @@
 body, html {
-        margin: unset;
-        overflow: hidden;
+    margin: unset;
+    overflow: hidden;
+    height: 100%;
+}
+#spotviewer {
+    width: 100%;
+    height: 25%;
+    background-color: rgb(255, 160, 00);
+    z-index: 7;
+    transition-duration: .5s;
+    position: fixed;
+    overflow-x: auto;
+    white-space: nowrap;
+    -ms-overflow-style: none;    /* IE, Edge 対応 */
+    scrollbar-width: none;
+}
+#spotviewer::-webkit-scrollbar {  /* Chrome, Safari 対応 */
+    display:none;
+}
+.content {
+    display: inline-block;
+    padding: 1%;
+    border-radius: 5px;
+    background-size: cover;
+    background-position: center;
+}
+.cnts {
+    background-color: rgba(255, 160, 00, .6);
+    padding: 1px;
+    position: absolute;
+    z-index: 8;
+    color: white;
+}
+
+#menubar {
+    z-index: 6;
+    width: 50vmin;
+    height: 13vmin;
+    position: absolute;
+    background-color: white;
+    transition-duration: .5s;
+    top: 4px;
+    left: 4px;
+    border-radius: 6px;
+     box-shadow: 0px 0px 3px 3px rgb(100,100,100);
+}
+#showb {
+    position: absolute;
+    height: 5%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, .6);
+    z-index: 6;
+    transition: all 4s cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+#showbv {
+    position: absolute;
+    transform: rotate(45deg);
+    top: -12px;
+    left: calc(50% - 13px);
+    width: 26px;
+    height: 26px;
+    transition: all 4s cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+#delb {
+    z-index: 6;
+    position: absolute;
+    top: 1vmin;
+    height: 7vmin;
+    width: 8vmin;
+    margin: 2vmin 0 16px 2vmin;
+}
+#delbC {
+    height: 1vmin;
+    width: 9vmin;
+    transform: rotate(45deg);
+    margin: 3vmin 0 0 0;
+    background-color: rgb(255, 130, 00);
+}
+#delbC::after {
+    content: "";
+    position: absolute;
+    width:  9vmin;
+    height: 1vmin;
+    background: rgb(255, 130, 00);
+    margin-top: 3vmin;
+    transform: rotate(-90deg);
+    margin: 0;
+}
+#menub {
+    z-index: 10;
+    position: absolute;
+    top: 1vmin;
+    left: 14.5vmin;
+    height: 7vmin;
+    width: 7vmin;
+    margin: 2vmin 0 2vmin;
+    transition-duration: .5s;
+}
+.menubS {
+    position: relative;
+    width: 1.4vmin;
+    height: 1.4vmin;
+    background-color: rgb(255, 130, 00);
+    margin-left: 2.8vmin;
+}
+.menubS:before {
+    content: "";
+    position: absolute;
+    left: -2.8vmin;
+    width:  1.4vmin;
+    height: 1.4vmin;
+    background-color: rgb(255, 130, 00);
+}
+.menubS:after {
+    content: "";
+    position: absolute;
+    left: 2.8vmin;
+    width:  1.4vmin;
+    height: 1.4vmin;
+    background-color: rgb(255, 130, 00);
+}
+#menub div:nth-child(1) {
+    top: 0;
+}
+#menub div:nth-child(2) {
+    top: 1.4vmin;
+}
+#menub div:nth-child(3) {
+    top: 2.8vmin;
+}
+#changeb {
+    z-index: 6;
+    top: 1vmin;
+    margin: 1.5vmin 0 2vmin;
+    left: 26vmin;
+    height: 8vmin;
+    position: absolute;
+}
+#mode {
+    z-index: 6;
+    top: 1vmin;
+    left: 38vmin;
+    height: 8vmin;
+    margin: 1.5vmin 0 2vmin;
+    display: inline-block;
+    position: absolute;
+    line-height: 7vmin;
+    font-size: 2.5vmin;
+}
+.modep {
+    z-index: 6;
+    position: relative;
+    left: calc(50% - 7.5vmax);
+    width: 15vmax;
+    background-color: black;
+    transition: all .8s;
+    opacity: 0;
+    color: white;
+    font-size: 2vmax;
+    text-align: center;
+}
+.modep.show {
+    opacity: .6;
+}
+@media (orientation: portrait){
+    /*縦長*/
+    #spotviewer {
+        height: 20%;
+        top: -20%;
     }
+    .content {
+        width: 75%;
+        margin: 1.5% .5% 0;
+        height: 80%;
+    }
+    .cnts {
+        top: 75%;
+        font-size: 3vw;
+    }
+    #showbv {
+        border-bottom: 1.3vw solid rgb(255, 255, 255, 0.9);
+        border-right: 1.3vw solid rgb(255, 255, 255, 0.9);
+    }
+    .modep {
+        height: 8%;
+        top: 46%;
+        line-height: 8vh;
+    }
+}
+@media (orientation: landscape){
+    /*横長*/
+    #spotviewer {
+        height: 30%;
+        top: -30%;
+    }
+    .content {
+        width: 40%;
+        margin: .5% .5% 0;
+        height: 80%;
+    }
+    .cnts {
+        top: 67%;
+        font-size: 3vw;
+    }
+    #showbv {
+        border-bottom: .8vmin solid rgb(255, 255, 255, 0.9);
+        border-right: .8vmin solid rgb(255, 255, 255, 0.9);
+    }
+
+    .modep {
+        height: 15%;
+        top: 42.5%;
+        line-height: 15vh;
+    }
+}
+#container {
+    width: 100%;
+    height: 100%;
+}
+#container:-webkit-full-screen {
+    width: 100%;
+    height: 100%;
+}
+#container:-moz-full-screen {
+    width: 100%;
+    height: 100%;
+}
+#container:-ms-fullscreen {
+    width: 100%;
+    height: 100%;
+}
+#container:fullscreen {
+    width: 100%;
+    height: 100%;
+}
+.showa{
+    display: block;
+}
+
+.start_div{
+    width: 90%;
+    position: relative;
+    z-index: 1;
+    margin: 5% auto 5% auto;
+}
+
+.start_svg {
+    z-index: 2;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.start_img {
+    width: 100%;
+}
+
+#stage {
+    background-color: orange;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    position: absolute;
+}
+#stage > canvas {
+    width: 100%;
+}
+
+#minimap {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 5;
+    border-radius: 6px;
+    box-shadow: 0px 0px 3px 3px rgb(100,100,100);
+}
+
+#minibutton{
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 6;
+}
+
+#now_loading{
+    position:absolute;
+    bottom:8vh;
+    right:7vw;
+    text-shadow: 3px 3px 3px rgb(50,50,50);
+    font-size:5vw;
+    color:rgb(255,184,31);
+    z-index: 5;
+}
+
+#mypro{
+    position: absolute;
+    bottom: 2vh;
+    left: 2vw;
+    width: 96vw;
+    height: 5vh;
+    z-index: 5;
+
+    -webkit-appearance: none; /*Chrome,Safari*/
+    -moz-appearance: none; /*Firefox*/
+    background-color: rgb(192,226,247);
+    border-radius:10px;
+}
+
+::-webkit-progress-bar{
+    border-radius:10px;
+    background-color: rgb(192,226,247);
+}
+
+/*進捗率の色*/
+
+::-webkit-progress-value{
+    background-color: rgb(0,130,255);
+    border-radius:10px;
+}
+
+::-moz-progress-bar{
+    background-color: rgb(0,130,255);
+    border-radius:10px;
+}

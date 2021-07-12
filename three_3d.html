@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-	<meta charset="UTF-8">
+    <link rel="stylesheet" href="css/style.css">
 	<title>3dテスト</title>
 </head>
 <body>
-<!-- 	<canvas id="c"></canvas> -->
+    <div id="container"></div>
 </body>
 <script type="module">
 import * as THREE from '../three/build/three.module.js';
@@ -16,12 +17,14 @@ import {MTLLoader} from '../three/examples/jsm/loaders/MTLLoader.js';
 
 let width = window.innerWidth;
 let height = window.innerHeight;
+let container = document.getElementById("container");
 
-document.body.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
+container.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
 const stage = document.getElementById("stage");
 
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = 1; //通常モード:1/音展モード:-1
+const user_ios =  /[ \(]iP/.test(navigator.userAgent);
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -296,6 +299,7 @@ connection.forEach((val) => {
     map[val[0]].push(val[1]);
     map[val[1]].push(val[0]);
 });
+console.log("a");
 
 //画像読み込み(仮)
 let images = [];
@@ -339,12 +343,210 @@ let images = [];
             if((i+1) % 5 == 0 || i+1 == num) await wait();
         }
     }
+
+    container.insertAdjacentHTML("afterbegin",`
+            <div id='menubar'>
+                <div id='delb' onclick='del()'>
+                    <div id='delbC'/></div>
+                </div>
+
+                <div id='menub' onclick='spotSerect()'>
+                    <div class='menubS'></div>
+                    <div class='menubS'></div>
+                    <div class='menubS'></div>
+                </div>
+
+                <img src="../images/hide.png" id='changeb' onclick='better_view()'></img>
+
+                <img src="../images/change.png" id="mode" onclick="change_mode()"></img>
+            </div>
+
+            <div id='spotviewer'>
+                <div class="content" style="background-image: url(../images/link01.png); margin-left: 1%;" onclick="move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
+                <div class="content" style="background-image: url(../images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
+                <div class="content" style="background-image: url(../images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
+                <div class="content" style="background-image: url(../images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
+                <div class="content" style="background-image: url(../images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
+            </div>
+
+            <canvas id='minimap'></canvas>
+            <div class="modep"></div>
+        `);
+
+    // document.getElementById("delb").onclick = del;
+    // document.getElementById("menub").onclick = spotSerect;
+    // document.getElementById("changeb").onclick = better_view;
+    // document.getElementById("mode").onclick = change_mode;
     // for (let i = 0; i < imglen; i++){
     //     provec.push(imgload(i));
     //     /* if((i+1) % 5 == 0 || i+1 == num) */ 
     //     await wait();
     // }
 })();
+
+//上のバーなど削除(global)
+
+window.del = ()=>{
+    arrows = [];
+    document.getElementById("minimap").remove();
+    document.getElementById("delb").remove();
+    document.getElementById("menub").remove();
+    document.getElementById("menubar").remove();
+    document.getElementById("spotviewer").remove();
+    // history.back();
+}
+
+let high,spot = -1;
+// スポットセレクト(global)
+window.spotSerect = ()=>{
+    if(width >= height) high = 30;
+    else high = 20;
+    if(spot == -1){
+        document.getElementById("spotviewer").style.top = "0";
+        document.getElementById("menubar").style.top = `calc(${high}% + 4px)`;
+        document.getElementById("menub").style.transform ="rotate(-135deg)"
+    } else {
+        document.getElementById("spotviewer").style.top = `-${high}%`;
+        document.getElementById("menubar").style.top = "4px";
+        document.getElementById("menub").style.transform ="rotate(0deg)"
+    }
+    spot *= -1;
+}
+
+//UI非表示　ここから--------------------------------------------------------------------------------------------------
+let view_cnt = 0;
+window.better_view = ()=>{
+
+    let check = false, b, bv;
+    function hide_show(){
+        if(width >= height) high = 30;
+        else high = 20;
+        if(view_cnt == 1){
+            minimap.style.display = "none";
+            // minibutton.style.display = "none";
+            arrows.forEach((val) => {scene.remove(val);});
+            document.getElementById("menubar").style.top = "calc(-13vmin - 6px)";
+            document.getElementById("spotviewer").style.top = `-${high}%`;
+            document.getElementById("container").insertAdjacentHTML("afterbegin","<div id='showb' onclick='better_view()'><div id='showbv'></div></div>");
+            b = document.getElementById("showb");
+            bv = document.getElementById("showbv");
+            setTimeout(hide_bar,20);
+
+            element.addEventListener("pointerdown", show_bar, {passive: true});
+            element.addEventListener("pointerup", hide_bar, {passive: true});
+
+            view_cnt *= -1;
+        } else {
+            minimap.style.display = "block";
+            // minibutton.style.display = "block";
+            arrows.forEach((val) => {scene.add(val);});
+            document.getElementById("menubar").style.top = "4px";
+            document.getElementById("showb").remove();
+
+            if(document.fullscreenElement){
+                if      (document.exitFullscreen)       document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.mozCancelFullScreen)  document.mozCancelFullScreen();
+                else if (document.msExitFullscreen)     document.msExitFullscreen();
+            }
+
+            element.removeEventListener("pointerdown", show_bar, {passive: true});
+            element.removeEventListener("pointerup", hide_bar, {passive: true});
+
+            view_cnt++;
+        }
+    }
+
+    function show_bar(){
+        console.log("show");
+        b.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+        bv.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+
+        b.style.backgroundColor = "rgba(255, 255, 255, .6)";
+        if(width >= height){
+            bv.style.borderBottom = ".8vmin solid rgb(255, 255, 255, 0.9)";
+            bv.style.borderRight = ".8vmin solid rgb(255, 255, 255, 0.9)";
+        } else {
+            bv.style.borderBottom = "1.3vw solid rgb(255, 255, 255, 0.9)";
+            bv.style.borderRight = "1.3vw solid rgb(255, 255, 255, 0.9)";
+        }
+    }
+
+    function hide_bar(){
+        console.log("hide");
+        b.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+        bv.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+
+        b.style.backgroundColor = "rgba(255, 255, 255, .0)";
+        if(width >= height){
+            bv.style.borderBottom = ".8vmin solid rgb(255, 255, 255, .0)";
+            bv.style.borderRight = ".8vmin solid rgb(255, 255, 255, .0)";
+        } else {
+            bv.style.borderBottom = "1.3vw solid rgb(255, 255, 255, .0)";
+            bv.style.borderRight = "1.3vw solid rgb(255, 255, 255, .0)";
+        }
+    }
+
+    if(view_cnt != 0) hide_show();
+    else {
+        view_cnt++;
+        if(!user_ios){
+            if     (document.fullscreenEnabled)         document.getElementById("container").requestFullscreen();
+            else if(document.webkitFullscreenEnabled)   document.getElementById("container").webkitRequestFullscreen();
+            else if(document.mozFullScreenEnabled)      document.getElementById("container").mozRequestFullScreen();
+            else if(document.msFullscreenEnabled)       document.getElementById("container").msRequestFullscreen();
+            else                                        hide_show();
+        } else hide_show();
+    }
+}
+//ここまでbetter_view ---------------------------------------------------------------------------------------------------
+
+window.change_mode = (async () =>{
+    mode *= -1;
+
+    const rotate_img = document.getElementById("mode");
+    const el = document.querySelector('.modep');
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    //テキスト
+    if(mode === -1) el.innerHTML = "通常モード";
+    else el.innerHTML = "音展モード"
+    sphere.material.map = images[cur][(mode+1)*(posi[cur][3]-1)/2];
+    sphere.material.needsUpdate = true;
+
+    //画像を回す
+    (async ()=>{
+        if(!rotate_flag){
+            rotate_flag = true;
+            rotate_img.style.transition = "all .5s";
+            rotate_img.style.transform = `rotate(-180deg)`;
+
+            await wait(500);
+
+            rotate_img.style.transition = "all .0s"
+            rotate_img.style.transform = `rotate(0deg)`;
+            rotate_flag = false;
+        } else  return;
+    })();
+
+    //黒四角の表示
+    if(modep_cnt[0] == 0) el.style.display = "";
+    modep_cnt[0]++; modep_cnt[1]++;
+
+        await wait(100); //クリックから表示まで
+
+    el.classList.add('show');
+
+        await wait(1500); //表示中
+
+    if(modep_cnt[1] == 1) el.classList.remove('show');
+    modep_cnt[1]--;
+
+        await wait(1000); //消えかけ
+
+    if(modep_cnt[0] == 1) el.style.display = "none";
+    modep_cnt[0]--;
+});
 
 //矢印読み込み
 const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
@@ -679,8 +881,8 @@ function move_camera(){ //3dの時のみ実行
                         .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
 }
 
-//画面変更・位置更新
-function street_move(to){
+//画面変更・位置更新(global)
+window.street_move = (to)=>{
     if(street_mode == 1) sphere.material.map = images[to][0];
     else sphere.material.map = images[to][1];
     sphere.material.needsUpdate = true;
@@ -819,16 +1021,4 @@ function render() {
 
 requestAnimationFrame(render);
 </script>
-<style>
-    body, html {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-    }
-    #stage{
-        width: 100%;
-        height: 100%;
-        display: block;
-    }
-</style>
 </html>
