@@ -23,7 +23,7 @@ container.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
 const stage = document.getElementById("stage");
 
 let mode = "3d"; //3dモデルかstreet viewか
-let street_mode = 1; //通常モード:1/音展モード:-1
+let street_mode = -1; //通常モード:1/音展モード:-1
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
@@ -187,25 +187,25 @@ window.addEventListener("resize", handleResize, false);
 const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
 
-let posi_line = [
-    [50,17.5,20, 0,0],
-    [80,17.5,10, 0,0],
-    [50,17.5,0,  0,0],
-    [50,17.5,-10,0,0],
-    [50,17.5,-20,0,0], //5
-    [50,17.5,-30,0,0],
-    [50,31.5,20, 0,1],
-    [50,31.5,10, 0,1],
-    [50,31.5,0 , 0,1],
-    [50,31.5,-10, 0,1], //10
-    [50,31.5,-20, 0,1],
-    [50,31.5,-30, 0,1],
-    [50,45.5,20, 0,2],
-    [50,45.5,10, 0,2],
-    [50,45.5,0 , 0,2], //15
-    [50,45.5,-10, 0,2],
-    [50,45.5,-20, 0,2],
-    [50,45.5,-30, 0,2]
+let posi_line = [ //[x,y,z, 枚数, 校舎,階番号]
+    [50,17.5,20,  1, 0,0],
+    [80,17.5,10,  1, 0,0],
+    [50,17.5,0,   1, 0,0],
+    [50,17.5,-10, 1, 0,0],
+    [50,17.5,-20, 1, 0,0], //5
+    [50,17.5,-30, 1, 0,0],
+    [50,31.5,20,  1, 0,1],
+    [50,31.5,10,  1, 0,1],
+    [50,31.5,0 ,  1, 0,1],
+    [50,31.5,-10, 1, 0,1], //10
+    [50,31.5,-20, 1, 0,1],
+    [50,31.5,-30, 1, 0,1],
+    [50,45.5,20,  1, 0,2],
+    [50,45.5,10,  1, 0,2],
+    [50,45.5,0 ,  1, 0,2], //15
+    [50,45.5,-10, 1, 0,2],
+    [50,45.5,-20, 1, 0,2],
+    [50,45.5,-30, 1, 0,2]
 ];
 
 // let posi = [
@@ -244,7 +244,9 @@ for(let i=0; i<posi_line_len; ++i){
     // let j = 0;
     // if(posi[i][2] == -1) continue;
     // if(posi[i][1] > 100) j++;
-    posi[ posi_line[i][3] ][ posi_line[i][4] ].push([ posi_line[i][0], posi_line[i][1], posi_line[i][2], i]);
+    posi[ posi_line[i][4] ][ posi_line[i][5] ].push([ posi_line[i][0], posi_line[i][1], posi_line[i][2], posi_line[i][3], i]);
+    //配列posiの中身は [x,y,z,枚数,点番号]
+
     // if(posi[i][3] != 1) double++;
 }
 
@@ -299,7 +301,6 @@ connection.forEach((val) => {
     map[val[0]].push(val[1]);
     map[val[1]].push(val[0]);
 });
-console.log("a");
 
 //画像読み込み(仮)
 let images = [];
@@ -344,35 +345,6 @@ let images = [];
         }
     }
 
-    container.insertAdjacentHTML("afterbegin",`
-            <div id='menubar'>
-                <div id='delb' onclick='del()'>
-                    <div id='delbC'/></div>
-                </div>
-
-                <div id='menub' onclick='spotSerect()'>
-                    <div class='menubS'></div>
-                    <div class='menubS'></div>
-                    <div class='menubS'></div>
-                </div>
-
-                <img src="../images/hide.png" id='changeb' onclick='better_view()'></img>
-
-                <img src="../images/change.png" id="mode" onclick="change_mode()"></img>
-            </div>
-
-            <div id='spotviewer'>
-                <div class="content" style="background-image: url(../images/link01.png); margin-left: 1%;" onclick="move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
-                <div class="content" style="background-image: url(../images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
-                <div class="content" style="background-image: url(../images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
-                <div class="content" style="background-image: url(../images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
-                <div class="content" style="background-image: url(../images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
-            </div>
-
-            <canvas id='minimap'></canvas>
-            <div class="modep"></div>
-        `);
-
     // document.getElementById("delb").onclick = del;
     // document.getElementById("menub").onclick = spotSerect;
     // document.getElementById("changeb").onclick = better_view;
@@ -388,12 +360,15 @@ let images = [];
 
 window.del = ()=>{
     arrows = [];
-    document.getElementById("minimap").remove();
+    // document.getElementById("minimap").remove();
     document.getElementById("delb").remove();
     document.getElementById("menub").remove();
     document.getElementById("menubar").remove();
     document.getElementById("spotviewer").remove();
-    // history.back();
+    mode = "3d";
+    controls.target.set(0,0,0);
+    controls.enableRotate = true;
+    controls.enableZoom = true;
 }
 
 let high,spot = -1;
@@ -414,10 +389,10 @@ window.spotSerect = ()=>{
 }
 
 //UI非表示　ここから--------------------------------------------------------------------------------------------------
-let view_cnt = 0;
+let view_cnt = 0, b, bv;
 window.better_view = ()=>{
 
-    let check = false, b, bv;
+    let check = false;
     function hide_show(){
         if(width >= height) high = 30;
         else high = 20;
@@ -434,6 +409,9 @@ window.better_view = ()=>{
 
             element.addEventListener("pointerdown", show_bar, {passive: true});
             element.addEventListener("pointerup", hide_bar, {passive: true});
+            document.getElementById("showb").addEventListener("mouseleave", hide_bar, {passive: true});
+            document.getElementById("showb").addEventListener("mouseenter", show_bar, {passive: true});
+            document.getElementById("container").addEventListener("mouseleave", hide_bar, {passive: true});
 
             view_cnt *= -1;
         } else {
@@ -443,6 +421,10 @@ window.better_view = ()=>{
             document.getElementById("menubar").style.top = "4px";
             document.getElementById("showb").remove();
 
+            element.removeEventListener("pointerdown", show_bar, {passive: true});
+            element.removeEventListener("pointerup", hide_bar, {passive: true});
+            document.getElementById("container").removeEventListener("mouseleave", hide_bar, {passive: true});
+
             if(document.fullscreenElement){
                 if      (document.exitFullscreen)       document.exitFullscreen();
                 else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
@@ -450,40 +432,7 @@ window.better_view = ()=>{
                 else if (document.msExitFullscreen)     document.msExitFullscreen();
             }
 
-            element.removeEventListener("pointerdown", show_bar, {passive: true});
-            element.removeEventListener("pointerup", hide_bar, {passive: true});
-
             view_cnt++;
-        }
-    }
-
-    function show_bar(){
-        console.log("show");
-        b.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
-        bv.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
-
-        b.style.backgroundColor = "rgba(255, 255, 255, .6)";
-        if(width >= height){
-            bv.style.borderBottom = ".8vmin solid rgb(255, 255, 255, 0.9)";
-            bv.style.borderRight = ".8vmin solid rgb(255, 255, 255, 0.9)";
-        } else {
-            bv.style.borderBottom = "1.3vw solid rgb(255, 255, 255, 0.9)";
-            bv.style.borderRight = "1.3vw solid rgb(255, 255, 255, 0.9)";
-        }
-    }
-
-    function hide_bar(){
-        console.log("hide");
-        b.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
-        bv.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
-
-        b.style.backgroundColor = "rgba(255, 255, 255, .0)";
-        if(width >= height){
-            bv.style.borderBottom = ".8vmin solid rgb(255, 255, 255, .0)";
-            bv.style.borderRight = ".8vmin solid rgb(255, 255, 255, .0)";
-        } else {
-            bv.style.borderBottom = "1.3vw solid rgb(255, 255, 255, .0)";
-            bv.style.borderRight = "1.3vw solid rgb(255, 255, 255, .0)";
         }
     }
 
@@ -499,19 +448,51 @@ window.better_view = ()=>{
         } else hide_show();
     }
 }
+
+function show_bar(){
+    console.log("show");
+    b.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+    bv.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+    b.style.backgroundColor = "rgba(255, 255, 255, .6)";
+    if(width >= height){
+        bv.style.borderBottom = ".8vmin solid rgb(255, 255, 255, 0.9)";
+        bv.style.borderRight = ".8vmin solid rgb(255, 255, 255, 0.9)";
+    } else {
+        bv.style.borderBottom = "1.3vw solid rgb(255, 255, 255, 0.9)";
+        bv.style.borderRight = "1.3vw solid rgb(255, 255, 255, 0.9)";
+    }
+}
+
+function hide_bar(){
+    console.log("hide");
+    b.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+    bv.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
+    b.style.backgroundColor = "rgba(255, 255, 255, .0)";
+    if(width >= height){
+        bv.style.borderBottom = ".8vmin solid rgb(255, 255, 255, .0)";
+        bv.style.borderRight = ".8vmin solid rgb(255, 255, 255, .0)";
+    } else {
+        bv.style.borderBottom = "1.3vw solid rgb(255, 255, 255, .0)";
+        bv.style.borderRight = "1.3vw solid rgb(255, 255, 255, .0)";
+    }
+}
 //ここまでbetter_view ---------------------------------------------------------------------------------------------------
 
+let rotate_flag = false, modep_cnt = [0,0];
 window.change_mode = (async () =>{
-    mode *= -1;
+    street_mode *= -1;
 
     const rotate_img = document.getElementById("mode");
     const el = document.querySelector('.modep');
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     //テキスト
-    if(mode === -1) el.innerHTML = "通常モード";
+    if(street_mode === 1) el.innerHTML = "通常モード";
     else el.innerHTML = "音展モード"
-    sphere.material.map = images[cur][(mode+1)*(posi[cur][3]-1)/2];
+    // cur = 1; //テスト用
+
+    if(street_mode == 1 || posi_line[cur][3] == 1) sphere.material.map = images[cur][0];
+    else sphere.material.map = images[cur][1];
     sphere.material.needsUpdate = true;
 
     //画像を回す
@@ -710,6 +691,7 @@ let pre_elem_name;
 let pre_posi ; //obj
 function pre_click(x,y){
     pre_posi = {x: x, y: y};
+    // console.log(pre_posi);
 
     const mouse = new THREE.Vector2();
     mouse.x = (x / width) * 2 - 1;
@@ -864,6 +846,35 @@ function move_camera(){ //3dの時のみ実行
         street_camera.position.set(0.1*Math.cos(theta),0,-0.1*Math.sin(theta));
         street_controls.enableDamping = true;
         street_move(turn_info.to);
+
+        //UI挿入
+        container.insertAdjacentHTML("afterbegin",`
+            <div id='menubar'>
+                <div id='delb' onclick='del()'>
+                    <div id='delbC'/></div>
+                </div>
+
+                <div id='menub' onclick='spotSerect()'>
+                    <div class='menubS'></div>
+                    <div class='menubS'></div>
+                    <div class='menubS'></div>
+                </div>
+
+                <img src="../images/hide.png" id='changeb' onclick='better_view()'></img>
+
+                <img src="../images/change.png" id="mode" onclick="change_mode()"></img>
+            </div>
+
+            <div id='spotviewer'>
+                <div class="content" style="background-image: url(../images/link01.png); margin-left: 1%;" onclick="move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
+                <div class="content" style="background-image: url(../images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
+                <div class="content" style="background-image: url(../images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
+                <div class="content" style="background-image: url(../images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
+                <div class="content" style="background-image: url(../images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
+            </div>
+
+            <div class="modep"></div>
+        `);
         return;
     }
 
@@ -882,13 +893,15 @@ function move_camera(){ //3dの時のみ実行
 }
 
 //画面変更・位置更新(global)
+let cur;
 window.street_move = (to)=>{
-    if(street_mode == 1) sphere.material.map = images[to][0];
+    console.log(posi_line[to][3]);
+    if(street_mode == 1 || posi_line[to][3] == 1) sphere.material.map = images[to][0];
     else sphere.material.map = images[to][1];
     sphere.material.needsUpdate = true;
     // street_controls.enableDamping = false;
     // street_controls.dampingFactor = 0.2;
-    // cur = to;
+    cur = to;
     // floor = posi[to][2];
 
     //矢印・minimap更新
