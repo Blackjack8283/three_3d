@@ -139,8 +139,8 @@ const element = renderer.domElement;
 
 
 const controls = create_controls(camera,element); //control 作成
-    controls.maxDistance = 220;
-    controls.minDistance = 0.3;
+    // controls.maxDistance = 220;
+    // controls.minDistance = 0;
     controls.maxPolarAngle = Math.PI/2 - 0.01;
 const street_controls = create_controls(street_camera,element);
     street_controls.enableZoom = false;
@@ -151,7 +151,7 @@ function create_controls(cam,elem){
     controls.target.set(0, 0, 0);
     //各種設定
     controls.enableDamping = true;
-    controls.enableZoom = true;
+    controls.enableZoom = false;
     controls.enablePan = false;
     controls.enableRotate = true;
 
@@ -188,24 +188,24 @@ const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
 
 let posi_line = [ //[x,y,z, 枚数, 校舎,階番号]
-    [50,17.5,20,  1, 0,0],
-    [80,17.5,10,  1, 0,0],
-    [50,17.5,0,   1, 0,0],
-    [50,17.5,-10, 1, 0,0],
-    [50,17.5,-20, 1, 0,0], //5
-    [50,17.5,-30, 1, 0,0],
-    [50,31.5,20,  1, 0,1],
-    [50,31.5,10,  1, 0,1],
-    [50,31.5,0 ,  1, 0,1],
-    [50,31.5,-10, 1, 0,1], //10
-    [50,31.5,-20, 1, 0,1],
-    [50,31.5,-30, 1, 0,1],
-    [50,45.5,20,  1, 0,2],
-    [50,45.5,10,  1, 0,2],
-    [50,45.5,0 ,  1, 0,2], //15
-    [50,45.5,-10, 1, 0,2],
-    [50,45.5,-20, 1, 0,2],
-    [50,45.5,-30, 1, 0,2]
+    [50,17.5,20,  2, 0,0],
+    [80,17.5,10,  2, 0,0],
+    [50,17.5,0,   2, 0,0],
+    [50,17.5,-10, 2, 0,0],
+    [50,17.5,-20, 2, 0,0], //5
+    [50,17.5,-30, 2, 0,0],
+    [50,31.5,20,  2, 0,1],
+    [50,31.5,10,  2, 0,1],
+    [50,31.5,0 ,  2, 0,1],
+    [50,31.5,-10, 2, 0,1], //10
+    [50,31.5,-20, 2, 0,1],
+    [50,31.5,-30, 2, 0,1],
+    [50,45.5,20,  2, 0,2],
+    [50,45.5,10,  2, 0,2],
+    [50,45.5,0 ,  2, 0,2], //15
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2]
 ];
 
 // let posi = [
@@ -305,20 +305,24 @@ connection.forEach((val) => {
 
 //画像読み込み(仮)
 let images = [];
-(async () => {
+for(let i = 0; i < posi_line.length; ++i) images[i] = [undefined,undefined];
+console.log(images);
+async function load_picture (i,j){
     let provec = [];
     function threeload(url,number,mode){
         return new Promise((resolve)=>{
-            const loader = new THREE.TextureLoader().load(url,(tex)=>{
-                if(mode != -1){
-                    if(mode == 0) images[number] = [];
+            if(images[number][mode] == undefined){
+                const loader = new THREE.TextureLoader().load(url,(tex)=>{
                     images[number][mode] = tex;
-                } else images[number] = tex;
-                // cnt++;
-                // mypro.value = Math.floor(cnt/(num+double+1+imglen)*100);
-                // prospa.innerText = Math.floor(cnt/(num+double+1+imglen)*100) + "%";
+                    // else images[number] = tex;
+                    // cnt++;
+                    // mypro.value = Math.floor(cnt/(num+double+1+imglen)*100);
+                    // prospa.innerText = Math.floor(cnt/(num+double+1+imglen)*100) + "%";
+                    resolve();
+                });
+            } else {
                 resolve();
-            });
+            } 
         });
     }
     // function imgload(number){
@@ -338,13 +342,15 @@ let images = [];
         await Promise.all(provec);
         provec = [];
     } 
-    let num = 5;
-    for(let i = 0; i < num; i++){
-        for(let j = 0; j < 1; j++){
-            provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
-            if((i+1) % 5 == 0 || i+1 == num) await wait();
-        }
-    }
+    provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
+    await wait();
+    // let num = 5;
+    // for(let i = 0; i < num; i++){
+    //     for(let j = 0; j < 1; j++){
+    //         provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
+    //         if((i+1) % 5 == 0 || i+1 == num) await wait();
+    //     }
+    // }
 
     // document.getElementById("delb").onclick = del;
     // document.getElementById("menub").onclick = spotSerect;
@@ -355,11 +361,11 @@ let images = [];
     //     /* if((i+1) % 5 == 0 || i+1 == num) */ 
     //     await wait();
     // }
-})();
+}
 
 //上のバーなど削除(global)
 
-window.del = ()=>{
+window.del = () => {
     arrows.forEach((val) => {street_scene.remove(val);});
     arrows = [];
     // document.getElementById("minimap").remove();
@@ -370,9 +376,10 @@ window.del = ()=>{
     document.querySelector(".modep").remove();
     mode = "3d";
     controls.target.set(0,0,0);
+    controls.enableDamping = true;
     controls.enableRotate = true;
     controls.enableZoom = true;
-}
+};
 
 let high,spot = -1;
 // スポットセレクト(global)
@@ -389,7 +396,7 @@ window.spotSerect = ()=>{
         document.getElementById("menub").style.transform ="rotate(0deg)"
     }
     spot *= -1;
-}
+};
 
 //UI非表示　ここから--------------------------------------------------------------------------------------------------
 let view_cnt = 0, b, bv;
@@ -451,7 +458,7 @@ window.better_view = ()=>{
             else                                        hide_show();
         } else hide_show();
     }
-}
+};
 
 function show_bar(){
     console.log("show");
@@ -495,8 +502,13 @@ window.change_mode = (async () =>{
     else el.innerHTML = "音展モード"
     // cur = 1; //テスト用
 
-    if(street_mode == 1 || posi_line[cur][3] == 1) sphere.material.map = images[cur][0];
-    else sphere.material.map = images[cur][1];
+    if(street_mode == 1 || posi_line[cur][3] == 1){
+        await load_picture(cur,0);
+        sphere.material.map = images[cur][0];
+    } else {
+        await load_picture(cur,1);
+        sphere.material.map = images[cur][1];
+    }
     sphere.material.needsUpdate = true;
 
     //画像を回す
@@ -797,8 +809,7 @@ function camera_trigger(button){ //3dモデル操作中のみ実行 oav:目標ve
     let acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
     let ahv = ohv.clone().sub(oav);
-    const cos_theta = (ahv.clone().normalize())
-                        .dot(acv.clone().normalize());
+    const cos_theta = (ahv.clone().normalize()).dot(acv.clone().normalize());
     let theta = Math.acos(cos_theta); //thetaはラジアン
     const size = acv.clone().length();
     if(oav.y > ocv.y) theta *= -1;
@@ -807,6 +818,7 @@ function camera_trigger(button){ //3dモデル操作中のみ実行 oav:目標ve
     const to = Number(button.name.split("_")[1]);
 
     //移行用
+    controls.enableDamping = false;
     controls.enableRotate = false;
     controls.enableZoom = false;
 
@@ -898,23 +910,27 @@ function move_camera(){ //3dの時のみ実行
 
 //画面変更・位置更新(global)
 let cur;
-window.street_move = (to)=>{
-    console.log(posi_line[to][3]);
-    if(street_mode == 1 || posi_line[to][3] == 1) sphere.material.map = images[to][0];
-    else sphere.material.map = images[to][1];
+window.street_move = (async (to) => {
+    arrows.forEach((val) => {street_scene.remove(val);});
+    cur = to;
+    if(street_mode == 1 || posi_line[to][3] == 1){
+        await load_picture(to,0);
+        sphere.material.map = images[to][0];
+    } else {
+        await load_picture(to,1);
+        sphere.material.map = images[to][1];
+    }
     sphere.material.needsUpdate = true;
     // street_controls.enableDamping = false;
     // street_controls.dampingFactor = 0.2;
-    cur = to;
     // floor = posi[to][2];
 
     //矢印・minimap更新
-    arrows.forEach((val) => {street_scene.remove(val);});
     generate_arrows(to);
     // cancelAnimationFrame(callbackdraw);
     // draw();
     // mini_button(to);
-}
+});
 
 let move_groups_flag = false; //move_groupsを回すフラグ
 let add_later = false; //groupを動かし終わってからの動作のフラグ
@@ -1043,14 +1059,18 @@ function timeCheck() { //20fps未満は解像度下げる
     }
 }
 
+controls.target.copy(camera.position); //中心となるベクトルを作りそれを動かせ
+        controls.target.z -= 0.01;
 let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
     if(mode == "3d"){ //3dモデル操作中
         move_camera();
         move_groups();
-        renderer.render(scene, camera);
+        console.log(camera.position);
         controls.update();
+
+        renderer.render(scene, camera);
     } else { //street view 中
         renderer.render(street_scene, street_camera);
         street_controls.update();
