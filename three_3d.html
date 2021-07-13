@@ -244,6 +244,7 @@ for(let i=0; i<posi_line_len; ++i){
     // let j = 0;
     // if(posi[i][2] == -1) continue;
     // if(posi[i][1] > 100) j++;
+
     posi[ posi_line[i][4] ][ posi_line[i][5] ].push([ posi_line[i][0], posi_line[i][1], posi_line[i][2], posi_line[i][3], i]);
     //配列posiの中身は [x,y,z,枚数,点番号]
 
@@ -359,12 +360,14 @@ let images = [];
 //上のバーなど削除(global)
 
 window.del = ()=>{
+    arrows.forEach((val) => {street_scene.remove(val);});
     arrows = [];
     // document.getElementById("minimap").remove();
     document.getElementById("delb").remove();
     document.getElementById("menub").remove();
     document.getElementById("menubar").remove();
     document.getElementById("spotviewer").remove();
+    document.querySelector(".modep").remove();
     mode = "3d";
     controls.target.set(0,0,0);
     controls.enableRotate = true;
@@ -397,9 +400,10 @@ window.better_view = ()=>{
         if(width >= height) high = 30;
         else high = 20;
         if(view_cnt == 1){
-            minimap.style.display = "none";
+            // minimap.style.display = "none";
             // minibutton.style.display = "none";
-            arrows.forEach((val) => {scene.remove(val);});
+            arrows.forEach((val) => {street_scene.remove(val);});
+            console.log(arrows);
             document.getElementById("menubar").style.top = "calc(-13vmin - 6px)";
             document.getElementById("spotviewer").style.top = `-${high}%`;
             document.getElementById("container").insertAdjacentHTML("afterbegin","<div id='showb' onclick='better_view()'><div id='showbv'></div></div>");
@@ -415,9 +419,9 @@ window.better_view = ()=>{
 
             view_cnt *= -1;
         } else {
-            minimap.style.display = "block";
+            // minimap.style.display = "block";
             // minibutton.style.display = "block";
-            arrows.forEach((val) => {scene.add(val);});
+            arrows.forEach((val) => {street_scene.add(val);});
             document.getElementById("menubar").style.top = "4px";
             document.getElementById("showb").remove();
 
@@ -873,7 +877,7 @@ function move_camera(){ //3dの時のみ実行
                 <div class="content" style="background-image: url(../images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
             </div>
 
-            <div class="modep"></div>
+            <div class="modep" style="display: none"></div>
         `);
         return;
     }
@@ -962,16 +966,49 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
 function handleResize() {
     width = window.innerWidth;
     height = window.innerHeight;
+     //canvas更新
+
+    // if(width >= height){
+    //     hrate = 0.31;
+    //     high = 30;
+    //     if(mapz != 0.9){
+    //         mapz = 0.9;
+    //         if(view_cnt != -1) mini_button(cur);
+    //     }
+    // } else {
+    //     hrate = 0.21;
+    //     high = 20;
+    //     if(mapz != 0.6){
+    //         mapz = 0.6; 
+    //         if(view_cnt != -1) mini_button(cur);
+    //     }
+    // }
+
+    // canvas.width = `${height * hrate}`; canvas.height = `${canvas.width * mapas}`;
+    // mwidth = canvas.width; mheight = canvas.height;
+
+    // minibutton.style.width = `${height * hrate}px`; minibutton.style.height = `${height * hrate * mapas}px`;
+    if(mode == "street"){
+        document.getElementById("spotviewer").style.height = `${high}%`;
+        if(view_cnt == -1){
+            document.getElementById("menubar").style.top = `-${high}%`;
+            document.getElementById("spotviewer").style.top = `-${high}%`; 
+        } else {
+            document.getElementById("menubar").style.top = `calc(${(spot+1)*high*0.5}% + 4px)`;
+            document.getElementById("spotviewer").style.top = `${(spot-1)*high*0.5}%`;
+        }
+    }
+
     //レンダラーサイズ変更
     renderer.setSize(width, height);
     //カメラアスペクト比変更
-    if(mode == "3d"){ //3dモデル操作中
+    // if(mode == "3d"){ //3dモデル操作中
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
-    } else { //streetview操作中
+    // } else { //streetview操作中
         street_camera.aspect = width / height;
         street_camera.updateProjectionMatrix();
-    }
+    // }
 }
 
 let last_time = 0;
