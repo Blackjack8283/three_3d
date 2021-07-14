@@ -32,7 +32,8 @@ scene.background = new THREE.Color('skyblue');
 scene.name = undefined;
 //カメラ
 const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1000);
-camera.position.set(0, 100, 80);
+let camera_target = new THREE.Vector3(0,100,80);
+camera.position.set(0, 100, 80.1);
 scene.add(camera);
 
 //地面
@@ -1059,17 +1060,17 @@ function timeCheck() { //20fps未満は解像度下げる
     }
 }
 
-controls.target.copy(camera.position); //中心となるベクトルを作りそれを動かせ
-        controls.target.z -= 0.01;
+// controls.target.copy(camera.position); //中心となるベクトルを作りそれを動かせ
+        // controls.target.z -= 0.01;
 let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
     if(mode == "3d"){ //3dモデル操作中
         move_camera();
         move_groups();
-        console.log(camera.position);
         controls.update();
 
+        controls.target.copy(camera_target);
         renderer.render(scene, camera);
     } else { //street view 中
         renderer.render(street_scene, street_camera);
