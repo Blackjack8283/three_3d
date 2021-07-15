@@ -111,12 +111,6 @@ let sphere;
 {
     const geometry = new THREE.SphereGeometry(8, 64, 64);
     geometry.scale(-1, 1, 1);
-    // const loader = new THREE.TextureLoader();
-    // loader.load('../images/image0-0.JPG', function(texture) {
-    //     const material =  new THREE.MeshLambertMaterial({map: texture});
-    //     sphere = new THREE.Mesh( geometry, material);
-    //     street_scene.add( sphere );
-    // });
     const material =  new THREE.MeshLambertMaterial();
     sphere = new THREE.Mesh( geometry, material);
     sphere.name = undefined;
@@ -140,8 +134,6 @@ const element = renderer.domElement;
 
 
 const controls = create_controls(camera,element); //control 作成
-    // controls.maxDistance = 220;
-    // controls.minDistance = 0;
     controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
     controls.minPolarAngle = 0.01;
 const street_controls = create_controls(street_camera,element);
@@ -216,10 +208,6 @@ window.addEventListener("keyup",(e)=>{
 
 window.addEventListener("resize", handleResize, false);
 
-// window.addEventListener("keydown", ()=>{console.log(posi_to_theta(camera.position.z, camera.position.x));}, false);
-// window.addEventListener("keydown", ()=>{console.log(street_camera.position.x, street_camera.position.z);}, false);
-// window.addEventListener("keydown", ()=>{console.log(camera.position.x, camera.position.z);}, false);
-
 //ボタンのテクスチャ
 const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
@@ -288,8 +276,6 @@ for(let i=0; i<posi_line_len; ++i){
     // if(posi[i][3] != 1) double++;
 }
 
-console.log(posi);
-
 const connection = [
     [0,1],
     [1,2],
@@ -297,40 +283,6 @@ const connection = [
     [3,4],
     [4,5]
 ];
-
-// let posi_line = [];
-// let posi_number = [];
-// {
-//     //posiをvectorに変換,番号記入
-//     function posi_all(array,func){
-//         const len = array.length;
-//         let ret_array = [];
-//         for(let i = 0; i < len; i++){
-//             if(typeof array[i] == "number"){ //数字の場合
-//                 return func(array);
-//             } else { //配列の場合 再帰
-//                 ret_array[i] = posi_all(array[i],func);
-//             }
-//         }
-//         return ret_array; //空白の場合は空配列
-//     }
-//     //ベクトルに変換用
-//     function func1(array){
-//         const vec = new THREE.Vector3(...array);
-//         posi_line.push(vec);
-//         return vec;
-//     }
-//     //数字カウント用
-//     let cnt = 0;
-//     function func2(array){
-//         cnt++;
-//         return cnt-1;
-//     }
-
-//     posi_number = posi_all(posi,func2);
-//     posi = posi_all(posi,func1);
-//     console.log(posi_number);
-// }
 
 //connectionの整理
 let map = new Array(posi_line.length);
@@ -343,7 +295,7 @@ connection.forEach((val) => {
 //画像読み込み(仮)
 let images = [];
 for(let i = 0; i < posi_line.length; ++i) images[i] = [undefined,undefined];
-console.log(images);
+
 async function load_picture (i,j){
     let provec = [];
     function threeload(url,number,mode){
@@ -351,10 +303,6 @@ async function load_picture (i,j){
             if(images[number][mode] == undefined){
                 const loader = new THREE.TextureLoader().load(url,(tex)=>{
                     images[number][mode] = tex;
-                    // else images[number] = tex;
-                    // cnt++;
-                    // mypro.value = Math.floor(cnt/(num+double+1+imglen)*100);
-                    // prospa.innerText = Math.floor(cnt/(num+double+1+imglen)*100) + "%";
                     resolve();
                 });
             } else {
@@ -362,42 +310,13 @@ async function load_picture (i,j){
             } 
         });
     }
-    // function imgload(number){
-    //     return new Promise((resolve)=>{
-    //         let img = new Image();
-    //         img.src = srcs[number];
-    //         img.addEventListener("load", ()=>{
-    //             images[num+1+number] = img;
-    //             cnt++;
-    //             mypro.value = Math.floor(cnt/(num+double+1+imglen)*100);
-    //             prospa.innerText = Math.floor(cnt/(num+double+1+imglen)*100) + "%";
-    //             resolve();
-    //         });
-    //     });
-    // }
+
     async function wait(){
         await Promise.all(provec);
         provec = [];
     } 
     provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
     await wait();
-    // let num = 5;
-    // for(let i = 0; i < num; i++){
-    //     for(let j = 0; j < 1; j++){
-    //         provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
-    //         if((i+1) % 5 == 0 || i+1 == num) await wait();
-    //     }
-    // }
-
-    // document.getElementById("delb").onclick = del;
-    // document.getElementById("menub").onclick = spotSerect;
-    // document.getElementById("changeb").onclick = better_view;
-    // document.getElementById("mode").onclick = change_mode;
-    // for (let i = 0; i < imglen; i++){
-    //     provec.push(imgload(i));
-    //     /* if((i+1) % 5 == 0 || i+1 == num) */ 
-    //     await wait();
-    // }
 }
 
 //上のバーなど削除(global)
@@ -412,10 +331,9 @@ window.del = () => {
     document.getElementById("spotviewer").remove();
     document.querySelector(".modep").remove();
     mode = "3d";
-    controls.target.set(0,0,0);
     controls.enableDamping = true;
     controls.enableRotate = true;
-    controls.enableZoom = true;
+    controls.enableZoom = false;
 };
 
 let high,spot = -1;
@@ -435,7 +353,7 @@ window.spotSerect = ()=>{
     spot *= -1;
 };
 
-//UI非表示　ここから--------------------------------------------------------------------------------------------------
+//better_view ここから--------------------------------------------------------------------------------------------------
 let view_cnt = 0, b, bv;
 window.better_view = ()=>{
 
@@ -611,19 +529,6 @@ function generate_arrows(src) {
 }
 
 //逆三角関数
-// function posi_to_theta(x,z){
-//     let rotate;
-//     x *= -1; z *= -1;
-//     if (z == 0) {
-//         if (x >= 0) rotate = Math.PI / 2;
-//         else rotate = Math.PI * 3 / 2;
-//     } else {
-//         rotate = Math.atan(x/z);
-//         if (rotate * x < 0 || (rotate == 0 && z < 0)) rotate += Math.PI;
-//         else rotate += Math.PI * 2;
-//     }
-//     return rotate;
-// }
 
 function posi_to_theta(x,y){
     let rotate;
@@ -895,6 +800,7 @@ function move_camera(){ //3dの時のみ実行
         turn_flag = false;
         // street_controls.enableDamping = false;
         console.log("終了");
+        camera_target.copy(controls.target);
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
         street_camera.position.set(0.1*Math.cos(theta),0,-0.1*Math.sin(theta));
@@ -944,7 +850,6 @@ function move_camera(){ //3dの時のみ実行
     controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分TAをcnt2:(1-cnt2)で内分
                         .add(turn_info.otv.clone().multiplyScalar(1-turn_info.cnt2))
                         .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
-                        console.log(camera.lookAt);
 }
 
 //画面変更・位置更新(global)
@@ -1016,6 +921,60 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
     } else {
         return Math.max( a-speed*0.3, goal-cur );
     }
+}
+
+const ori = new THREE.Vector3(10,120,80);
+let dir = camera_target.clone().sub(camera.position).normalize();
+const arrowHelper1 = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), ori,30,0xffff00);
+scene.add( arrowHelper1 );
+const arrowHelper2 = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), ori,30,0xffff00);
+scene.add( arrowHelper2 );
+const arrowHelper3 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xffff00);
+scene.add( arrowHelper3 );
+const arrowHelper4 = new THREE.ArrowHelper(dir, ori,30,0xff0000);
+scene.add( arrowHelper4 );
+const arrowHelper5 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xff0000);
+scene.add( arrowHelper5 );
+const arrowHelper6 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xff0000);
+scene.add( arrowHelper6 );
+
+function move_camera_target(){
+    const ey = new THREE.Vector3(0,1,0);
+    const c = camera_target.clone().sub(camera.position);
+    const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
+    const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
+    const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
+    const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
+    
+    const side = c.clone().normalize().cross(up); // |side| = 1
+    const front = c.normalize();
+    arrowHelper4.setDirection(front);
+    arrowHelper5.setDirection(up);
+    arrowHelper6.setDirection(side);
+
+    function move(dvec){
+        const t = camera_target.clone().add(dvec);
+        const p = camera.position.add(dvec);
+        if(t.y < 0.1){
+            const d = new THREE.Vector3(0,0.1-t.y,0);
+            t.add(d);
+            p.add(d);
+        }
+        if(t.length() > 248){
+            const maxv = t.clone().normalize().multiplyScalar(248);
+            const d = t.clone().sub(maxv);
+            t.sub(d);
+            p.sub(d);
+        }
+        camera_target = t;
+        camera.position.copy(p);
+    }
+    if(key_flag[0]) move(front);
+    if(key_flag[1]) move(front.clone().negate());
+    if(key_flag[2]) move(side);
+    if(key_flag[3]) move(side.clone().negate());
+    if(key_flag[4]) move(up);
+    if(key_flag[5]) move(up.clone().negate());
 }
 
 function handleResize() {
@@ -1098,30 +1057,6 @@ function timeCheck() { //20fps未満は解像度下げる
     }
 }
 
-const ori = new THREE.Vector3(10,80,80);
-let dir = camera_target.clone().sub(camera.position).normalize();
-const arrowHelper1 = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), ori,30,0xffff00);
-scene.add( arrowHelper1 );
-const arrowHelper2 = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), ori,30,0xffff00);
-scene.add( arrowHelper2 );
-const arrowHelper3 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xffff00);
-scene.add( arrowHelper3 );
-const arrowHelper4 = new THREE.ArrowHelper(dir, ori,30,0xff0000);
-scene.add( arrowHelper4 );
-const arrowHelper5 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xff0000);
-scene.add( arrowHelper5 );
-
-function move_camera_target(){
-    const ey = new THREE.Vector3(0,1,0);
-    const op2 = camera.position.clone().sub(camera_target);
-    const ex = (new THREE.Vector3(op2.x,0,op2.z)).normalize(); //要素なので大丈夫
-    const x = ex.x!=0 ? op2.x/ex.x : op2.z/ex.z;
-    const y = op2.y;                                        //θ=90°のため (p,q)=(-y,x)
-    const up = (new THREE.Vector3(-y*ex.x, x, -y*ex.z)).normalize(); //上向きベクトル
-    arrowHelper5.setDirection(up);
-    console.log(up.angleTo(camera_target.clone().sub(camera.position).normalize())/Math.PI*180);
-}
-
 let render_cnt = 1;
 function render() {
     requestAnimationFrame(render);
@@ -1131,25 +1066,7 @@ function render() {
         move_camera_target();
 
         if(!turn_flag) controls.target.copy(camera_target);
-        // console.log(Math.round(camera.rotation.x*100)*0.01,Math.round(camera.rotation.y*100)*0.01,Math.round(camera.rotation.z*100)*0.01);
-        dir = camera_target.clone().sub(camera.position).normalize();
-        arrowHelper4.setDirection(dir);
-        // const ori = new THREE.Vector3(0,1,0);
-        // const up = ori.applyAxisAngle(new THREE.Vector3(0,0,1), camera.rotation.z);
-        //             // .applyAxisAngle(new THREE.Vector3(0,1,0), camera.rotation.y)
-        //             // .applyAxisAngle(new THREE.Vector3(0,0,1), camera.rotation.z);
-        // arrowHelper5.setDirection(up);
-        // console.log(camera.rotation);
-        // const q = camera.quaternion;
-        // const theta = Math.acos(q.w); //rad
-        // const x = q.x / Math.sin(theta);
-        // const y = q.y / Math.sin(theta);
-        // const z = q.z / Math.sin(theta);
-        // console.log(theta/Math.PI*180);
-        // console.log(x,y,z,theta/Math.PI*180);
-        // console.log(dir.angleTo(new THREE.Vector3(x,y,z)));
-        // arrowHelper5.setDirection(new THREE.Vector3(x,y,z));
-    
+
         controls.update(); //ここでupdate
         renderer.render(scene, camera);
     } else { //street view 中
