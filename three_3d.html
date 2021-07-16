@@ -15,8 +15,8 @@ import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
 import {OBJLoader} from '../three/examples/jsm/loaders/OBJLoader.js';
 import {MTLLoader} from '../three/examples/jsm/loaders/MTLLoader.js';
 
-let width = window.innerWidth;
-let height = window.innerHeight;
+let width = document.documentElement.clientWidth;
+let height = document.documentElement.clientHeight;
 let container = document.getElementById("container");
 
 container.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
@@ -25,6 +25,7 @@ const stage = document.getElementById("stage");
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
+const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -157,6 +158,35 @@ function create_controls(cam,elem){
 }
 
 stage.appendChild(element);
+
+document.getElementById("container").insertAdjacentHTML("afterbegin","<canvas id='stick'></canvas>");
+const stick = document.getElementById("stick");
+const stick_canvas = stick.getContext("2d");
+if(!user_phone) stick.style.display = "none"; // PCなら削除
+let oriv = new THREE.Vector2(0,0);
+let hrate, high;
+handleResize();
+
+let stick_flag = false;
+let curv = new THREE.Vector2(0,0);
+stick.addEventListener("pointerdown", (e)=>{
+    const x = e.clientX - stage.offsetLeft;
+    const y = e.clientY - stage.offsetTop;
+    stick_flag = true;
+    curv.set(y, x);
+});
+
+stick.addEventListener("pointermove", (e)=>{
+    const x = e.clientX - stage.offsetLeft;
+    const y = e.clientY - stage.offsetTop;
+    curv.set(y, x);
+});
+
+stick.addEventListener("pointerleave", ()=>{ stick_flag = false; });
+
+stick.addEventListener("pointerup", ()=>{ stick_flag = false; });
+
+window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false});//iosスクロール防止用
 
 //クリック
 element.addEventListener("pointerdown", (e) => {
@@ -336,7 +366,7 @@ window.del = () => {
     controls.enableZoom = false;
 };
 
-let high,spot = -1;
+let spot = -1;
 // スポットセレクト(global)
 window.spotSerect = ()=>{
     if(width >= height) high = 30;
@@ -375,9 +405,9 @@ window.better_view = ()=>{
 
             element.addEventListener("pointerdown", show_bar, {passive: true});
             element.addEventListener("pointerup", hide_bar, {passive: true});
-            document.getElementById("showb").addEventListener("mouseleave", hide_bar, {passive: true});
-            document.getElementById("showb").addEventListener("mouseenter", show_bar, {passive: true});
-            document.getElementById("container").addEventListener("mouseleave", hide_bar, {passive: true});
+            document.getElementById("showb").addEventListener("pointerleave", hide_bar, {passive: true});
+            document.getElementById("showb").addEventListener("pointerenter", show_bar, {passive: true});
+            document.getElementById("container").addEventListener("pointerleave", hide_bar, {passive: true});
 
             view_cnt *= -1;
         } else {
@@ -389,7 +419,7 @@ window.better_view = ()=>{
 
             element.removeEventListener("pointerdown", show_bar, {passive: true});
             element.removeEventListener("pointerup", hide_bar, {passive: true});
-            document.getElementById("container").removeEventListener("mouseleave", hide_bar, {passive: true});
+            document.getElementById("container").removeEventListener("pointerleave", hide_bar, {passive: true});
 
             if(document.fullscreenElement){
                 if      (document.exitFullscreen)       document.exitFullscreen();
@@ -646,9 +676,9 @@ function delete_buttons(){ //3dモデル操作中のみ実行
 }
 
 let pre_elem_name;
-let pre_posi ; //obj
+let pre_posi = {x:undefined, y:undefined} ; //obj
 function pre_click(x,y){
-    pre_posi = {x: x, y: y};
+    pre_posi.x = x; pre_posi.y =  y;
     // console.log(pre_posi);
 
     const mouse = new THREE.Vector2();
@@ -840,14 +870,6 @@ function move_camera(){ //3dの時のみ実行
         `);
         return;
     }
-    // 内分で書き直して！！！
-    //カメラ自体の位置 
-    // const yv = new THREE.Vector3(0,1,0)
-    //             .multiplyScalar(Math.sin(turn_info.theta));
-    // const xzv = turn_info.ahv.clone()
-    //             .multiplyScalar(Math.cos(turn_info.theta));
-    // const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.02) ); //調整 真上防止
-    // camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,0.1,0)) ); //めり込み防止で足す
 
     //カメラ移動
     const onv = new THREE.Vector3(turn_info.ocv.x, turn_info.ahv.length()*Math.tan(turn_info.theta)+turn_info.oav.y, turn_info.ocv.z);
@@ -948,6 +970,7 @@ const arrowHelper6 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xff
 scene.add( arrowHelper6 );
 
 function move_camera_target(){
+    if(turn_flag) return;
     const ey = new THREE.Vector3(0,1,0);
     const c = camera_target.clone().sub(camera.position);
     const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
@@ -962,13 +985,33 @@ function move_camera_target(){
     arrowHelper6.setDirection(side);
 
     const dvec = new THREE.Vector3(0,0,0);
-    if(key_flag[0]) dvec.add(front);
-    if(key_flag[1]) dvec.add(front.clone().negate());
-    if(key_flag[2]) dvec.add(side);
-    if(key_flag[3]) dvec.add(side.clone().negate());
-    if(key_flag[4]) dvec.add(up);
-    if(key_flag[5]) dvec.add(up.clone().negate());
-    dvec.normalize();
+    if(!user_phone){ //スマホ以外
+        if(key_flag[0]) dvec.add(front);
+        if(key_flag[1]) dvec.add(front.clone().negate());
+        if(key_flag[2]) dvec.add(side);
+        if(key_flag[3]) dvec.add(side.clone().negate());
+        if(key_flag[4]) dvec.add(up);
+        if(key_flag[5]) dvec.add(up.clone().negate());
+        dvec.normalize();
+    } else { //スマホ
+        stick_canvas.clearRect(0,0,stick.width,stick.height);
+        let ocv;
+        const max = stick.width*0.2;
+        if(stick_flag){
+            ocv = curv.clone().sub(oriv); 
+            if(ocv.length() > max) ocv.normalize().multiplyScalar(max);
+        } else {
+            ocv = new THREE.Vector2(0,0);    
+        }
+
+        const dxy = new THREE.Vector2(stick.width*0.25,stick.height*0.25).add(new THREE.Vector2(ocv.y,ocv.x));
+        stick_canvas.drawImage(stick_imgs[1], stick.width*0.05, stick.height*0.05, stick.width*0.9, stick.height*0.9);
+        stick_canvas.drawImage(stick_imgs[0], dxy.x, dxy.y, stick.width*0.5, stick.height*0.5);
+
+        const len = ocv.length();
+        ocv.normalize().multiplyScalar(len/max);
+        dvec.add(front.clone().multiplyScalar(-ocv.x)).add(side.clone().multiplyScalar(ocv.y));
+    }
 
     const t = camera_target.clone().add(dvec);
     const p = camera.position.add(dvec);
@@ -988,30 +1031,33 @@ function move_camera_target(){
 }
 
 function handleResize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
+    console.log("resized");
+    width = document.documentElement.clientWidth;
+    height = document.documentElement.clientHeight;
      //canvas更新
 
-    // if(width >= height){
-    //     hrate = 0.31;
-    //     high = 30;
-    //     if(mapz != 0.9){
-    //         mapz = 0.9;
-    //         if(view_cnt != -1) mini_button(cur);
-    //     }
-    // } else {
-    //     hrate = 0.21;
-    //     high = 20;
-    //     if(mapz != 0.6){
-    //         mapz = 0.6; 
-    //         if(view_cnt != -1) mini_button(cur);
-    //     }
-    // }
+    if(width >= height){
+        hrate = 0.50;
+        high = 30;
+        // if(mapz != 0.9){
+        //     mapz = 0.9;
+        //     if(view_cnt != -1) mini_button(cur);
+        // }
+    } else {
+        hrate = 0.25;
+        high = 20;
+        // if(mapz != 0.6){
+        //     mapz = 0.6; 
+        //     if(view_cnt != -1) mini_button(cur);
+        // }
+    }
 
-    // canvas.width = `${height * hrate}`; canvas.height = `${canvas.width * mapas}`;
-    // mwidth = canvas.width; mheight = canvas.height;
+    stick.width = `${height * hrate}`; stick.height = `${stick.width}`;
+    oriv.set(height-stick.height*0.5, stick.width*0.5);
+    // scwidth = stick.width; scheight = stick.height;
 
     // minibutton.style.width = `${height * hrate}px`; minibutton.style.height = `${height * hrate * mapas}px`;
+    
     if(mode == "street"){
         document.getElementById("spotviewer").style.height = `${high}%`;
         if(view_cnt == -1){
@@ -1034,6 +1080,23 @@ function handleResize() {
         street_camera.updateProjectionMatrix();
     // }
 }
+
+const stick_imgs_srcs = ["../images/stick.png","../images/stick_background.png"];
+let stick_imgs = [undefined,undefined];
+(async ()=>{
+    function imgload(number){
+        return new Promise((resolve)=>{
+            let img = new Image();
+            img.src = stick_imgs_srcs[number];
+            img.addEventListener("load", ()=>{
+                stick_imgs[number] = img;
+                resolve();
+            });
+        });
+    }
+    await Promise.all([imgload(0),imgload(1)]);
+    requestAnimationFrame(render);              //画像読み込み終了後開始
+})();
 
 let last_time = 0;
 let ratio = 1;
@@ -1095,7 +1158,5 @@ function render() {
     }
     last_time = new Date().getTime();
 }
-
-requestAnimationFrame(render);
 </script>
 </html>

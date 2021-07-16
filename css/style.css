@@ -2,6 +2,8 @@ body, html {
     margin: unset;
     overflow: hidden;
     height: 100%;
+    user-select: none;
+    touch-action: manipulation
 }
 #spotviewer {
     width: 100%;
@@ -285,6 +287,16 @@ body, html {
     top: 4px;
     right: 4px;
     z-index: 6;
+}
+
+#stick {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    z-index: 5;
+    user-select: none;
+    /* border-radius: 6px;
+    box-shadow: 0px 0px 3px 3px rgb(100,100,100); */
 }
 
 #now_loading{
