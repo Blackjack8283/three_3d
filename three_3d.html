@@ -747,18 +747,20 @@ let turn_info; //obj
 //move_camera関数のトリガー(計算)
 function camera_trigger(button){ //3dモデル操作中のみ実行
     const oav = button.position;
-    const ocv = camera.position;
-    const otv = controls.target.clone(); //カメラ回転の中心
-    let acv = ocv.clone().sub(oav);
+    const ocv = camera.position.clone();
+    const acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
-    let ahv = ohv.clone().sub(oav);
-    const cos_theta = (ahv.clone().normalize()).dot(acv.clone().normalize());
-    let theta = Math.acos(cos_theta); //thetaはラジアン
-    const size = acv.clone().length();
+    const ahv = ohv.clone().sub(oav);
+    let theta = ahv.clone().angleTo(acv); //thetaはラジアン
     if(oav.y > ocv.y) theta *= -1;
-    ahv.normalize();
-
     const to = Number(button.name.split("_")[1]);
+
+    //aを通るy一定の平面とfrontベクトルの交点
+    const h = oav.clone().dot(new THREE.Vector3(0,1,0));
+    const n = new THREE.Vector3(0,1,0);
+    const m = camera_target.clone().sub(camera.position);
+    const oiv = camera.position.clone()
+            .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / (n.clone().dot(m)) ));
 
     //移行用
     controls.enableDamping = false;
@@ -766,15 +768,15 @@ function camera_trigger(button){ //3dモデル操作中のみ実行
     controls.enableZoom = false;
 
     turn_flag = true;
-    turn_info = {ahv: ahv, oav: oav, otv: otv, theta: theta, size: size, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
+    turn_info = {ahv: ahv, ocv: ocv, oav: oav, theta: theta, oiv:oiv, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
 }
 
 function move_camera(){ //3dの時のみ実行
     if(!turn_flag) return;
     let diff1;
-    //初め=>45度
+    //初期->45度
     if(turn_info.rad) diff1 = ease_diff(turn_info.theta, turn_info.rad, 0.01);
-    //45度=>0度
+    //45度->0度
     else{
         diff1 = (turn_info.theta - Math.PI*0.25 -0.1)*0.012;
         if(turn_info.theta + diff1 < 0) diff1 = 0;
@@ -800,11 +802,12 @@ function move_camera(){ //3dの時のみ実行
         turn_flag = false;
         // street_controls.enableDamping = false;
         console.log("終了");
-        camera_target.copy(controls.target);
+        camera_target.copy(turn_info.oav);
+        camera.position.copy(turn_info.oav.add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
         street_camera.position.set(0.1*Math.cos(theta),0,-0.1*Math.sin(theta));
-        street_controls.enableDamping = true;
+        // street_controls.enableDamping = false;
         street_move(turn_info.to);
 
         //UI挿入
@@ -839,16 +842,22 @@ function move_camera(){ //3dの時のみ実行
     }
     // 内分で書き直して！！！
     //カメラ自体の位置 
-    const yv = new THREE.Vector3(0,1,0)
-                .multiplyScalar(Math.sin(turn_info.theta));
-    const xzv = turn_info.ahv.clone()
-                .multiplyScalar(Math.cos(turn_info.theta));
-    const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.02) ); //調整 真上防止
-    camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,0.1,0)) ); //めり込み防止で足す
+    // const yv = new THREE.Vector3(0,1,0)
+    //             .multiplyScalar(Math.sin(turn_info.theta));
+    // const xzv = turn_info.ahv.clone()
+    //             .multiplyScalar(Math.cos(turn_info.theta));
+    // const anv = yv.add(xzv).multiplyScalar(turn_info.size* (turn_info.cnt1+(1-turn_info.cnt1)*0.02) ); //調整 真上防止
+    // camera.position.copy( anv.add(turn_info.oav).add(new THREE.Vector3(0,0.1,0)) ); //めり込み防止で足す
+
+    //カメラ移動
+    const onv = new THREE.Vector3(turn_info.ocv.x, turn_info.ahv.length()*Math.tan(turn_info.theta)+turn_info.oav.y, turn_info.ocv.z);
+    camera.position.copy( turn_info.oav.clone().multiplyScalar(1-turn_info.cnt1)
+                        .add(onv.multiplyScalar(turn_info.cnt1))
+                        .add((new THREE.Vector3(0,0.1,0))));
 
     //target 移動
-    controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分TAをcnt2:(1-cnt2)で内分
-                        .add(turn_info.otv.clone().multiplyScalar(1-turn_info.cnt2))
+    controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2))
                         .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
 }
 
@@ -952,29 +961,30 @@ function move_camera_target(){
     arrowHelper5.setDirection(up);
     arrowHelper6.setDirection(side);
 
-    function move(dvec){
-        const t = camera_target.clone().add(dvec);
-        const p = camera.position.add(dvec);
-        if(t.y < 0.1){
-            const d = new THREE.Vector3(0,0.1-t.y,0);
-            t.add(d);
-            p.add(d);
-        }
-        if(t.length() > 248){
-            const maxv = t.clone().normalize().multiplyScalar(248);
-            const d = t.clone().sub(maxv);
-            t.sub(d);
-            p.sub(d);
-        }
-        camera_target = t;
-        camera.position.copy(p);
+    const dvec = new THREE.Vector3(0,0,0);
+    if(key_flag[0]) dvec.add(front);
+    if(key_flag[1]) dvec.add(front.clone().negate());
+    if(key_flag[2]) dvec.add(side);
+    if(key_flag[3]) dvec.add(side.clone().negate());
+    if(key_flag[4]) dvec.add(up);
+    if(key_flag[5]) dvec.add(up.clone().negate());
+    dvec.normalize();
+
+    const t = camera_target.clone().add(dvec);
+    const p = camera.position.add(dvec);
+    if(t.y < 0.1){
+        const d = new THREE.Vector3(0,0.1-t.y,0);
+        t.add(d);
+        p.add(d);
     }
-    if(key_flag[0]) move(front);
-    if(key_flag[1]) move(front.clone().negate());
-    if(key_flag[2]) move(side);
-    if(key_flag[3]) move(side.clone().negate());
-    if(key_flag[4]) move(up);
-    if(key_flag[5]) move(up.clone().negate());
+    if(t.length() > 248){
+        const maxv = t.clone().normalize().multiplyScalar(248);
+        const d = t.clone().sub(maxv);
+        t.sub(d);
+        p.sub(d);
+    }
+    camera_target = t;
+    camera.position.copy(p);
 }
 
 function handleResize() {
@@ -1066,7 +1076,6 @@ function render() {
         move_camera_target();
 
         if(!turn_flag) controls.target.copy(camera_target);
-
         controls.update(); //ここでupdate
         renderer.render(scene, camera);
     } else { //street view 中
