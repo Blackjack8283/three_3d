@@ -25,7 +25,8 @@ const stage = document.getElementById("stage");
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
-const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
+// const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
+const user_phone = true;
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -138,15 +139,16 @@ const controls = create_controls(camera,element); //control 作成
     controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
     controls.minPolarAngle = 0.01;
 const street_controls = create_controls(street_camera,element);
-    street_controls.enableZoom = false;
     street_controls.enableDamping = false;
 
 function create_controls(cam,elem){
     const controls = new OrbitControls(cam, elem);
     controls.target.set(0, 0, 0);
+    controls.maxDistance = 0.01;
+    controls.minDistance = 0.01;
     //各種設定
     controls.enableDamping = true;
-    controls.enableZoom = false;
+    controls.enableZoom = true; //falseは二本指で暴走
     controls.enablePan = false;
     controls.enableRotate = true;
 
@@ -363,7 +365,7 @@ window.del = () => {
     mode = "3d";
     controls.enableDamping = true;
     controls.enableRotate = true;
-    controls.enableZoom = false;
+    stick.style.display = "block";
 };
 
 let spot = -1;
@@ -795,7 +797,9 @@ function camera_trigger(button){ //3dモデル操作中のみ実行
     //移行用
     controls.enableDamping = false;
     controls.enableRotate = false;
-    controls.enableZoom = false;
+    controls.maxDistance = Infinity;
+    controls.minDistance = 0;
+    stick.style.display = "none";
 
     turn_flag = true;
     turn_info = {ahv: ahv, ocv: ocv, oav: oav, theta: theta, oiv:oiv, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
@@ -827,16 +831,15 @@ function move_camera(){ //3dの時のみ実行
         turn_info.rad = 0;
     } else if(!(diff1 || diff2 || diff3)){
         //ズーム終了時の処理
-        // controls.enableRotate = true;
-        // controls.enableZoom = true;
         turn_flag = false;
-        // street_controls.enableDamping = false;
+        controls.maxDistance = 0.01;
+        controls.minDistance = 0.01;
         console.log("終了");
         camera_target.copy(turn_info.oav);
         camera.position.copy(turn_info.oav.add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
-        street_camera.position.set(0.1*Math.cos(theta),0,-0.1*Math.sin(theta));
+        street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
         // street_controls.enableDamping = false;
         street_move(turn_info.to);
 
@@ -1014,7 +1017,7 @@ function move_camera_target(){
     }
 
     const t = camera_target.clone().add(dvec);
-    const p = camera.position.add(dvec);
+    const p = camera.position.clone().add(dvec);
     if(t.y < 0.1){
         const d = new THREE.Vector3(0,0.1-t.y,0);
         t.add(d);
