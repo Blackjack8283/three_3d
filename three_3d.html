@@ -172,6 +172,9 @@ handleResize();
 let stick_flag = false;
 let curv = new THREE.Vector2(0,0);
 stick.addEventListener("pointerdown", (e)=>{
+    // console.log(e);
+    // let up = new Event('pointerup');
+    // window.dispatchEvent(up);
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     stick_flag = true;
@@ -179,6 +182,8 @@ stick.addEventListener("pointerdown", (e)=>{
 });
 
 stick.addEventListener("pointermove", (e)=>{
+    // let up = new Event('pointerup');
+    // window.dispatchEvent(up);
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     curv.set(y, x);
@@ -192,6 +197,8 @@ window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false
 
 //クリック
 element.addEventListener("pointerdown", (e) => {
+    let up = new Event("pointerup");
+    element.dispatchEvent(up);
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     pre_click(x,y);
@@ -245,24 +252,66 @@ const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
 
 let posi_line = [ //[x,y,z, 枚数, 校舎,階番号]
-    [50,17.5,20,  2, 0,0],
+    [50,17.5,20,  2, 0,0], //0
     [80,17.5,10,  2, 0,0],
     [50,17.5,0,   2, 0,0],
     [50,17.5,-10, 2, 0,0],
-    [50,17.5,-20, 2, 0,0], //5
-    [50,17.5,-30, 2, 0,0],
+    [50,17.5,-20, 2, 0,0], 
+    [50,17.5,-30, 2, 0,0], //5
     [50,31.5,20,  2, 0,1],
     [50,31.5,10,  2, 0,1],
     [50,31.5,0 ,  2, 0,1],
-    [50,31.5,-10, 2, 0,1], //10
-    [50,31.5,-20, 2, 0,1],
+    [50,31.5,-10, 2, 0,1], 
+    [50,31.5,-20, 2, 0,1], //10
     [50,31.5,-30, 2, 0,1],
     [50,45.5,20,  2, 0,2],
     [50,45.5,10,  2, 0,2],
-    [50,45.5,0 ,  2, 0,2], //15
+    [50,45.5,0 ,  2, 0,2],
+    [50,45.5,-10, 2, 0,2], //15
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
     [50,45.5,-10, 2, 0,2],
     [50,45.5,-20, 2, 0,2],
-    [50,45.5,-30, 2, 0,2]
+    [50,45.5,-10, 2, 0,2], //20
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //25
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //30
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //35
+    [-66.9,41.5,-55.1, 2, 1,3],
+    [-66.9,41.5,-15.8, 2, 1,3],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //40
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //45
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //50
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-10, 2, 0,2], //55
+    [50,45.5,-20, 2, 0,2],
+    [50,45.5,-30, 2, 0,2],
+    [50,45.5,-10, 2, 0,2],
+    [50,45.5,-20, 2, 0,2]
 ];
 
 // let posi = [
@@ -313,7 +362,8 @@ const connection = [
     [1,2],
     [2,3],
     [3,4],
-    [4,5]
+    [4,5],
+    [36,37]
 ];
 
 //connectionの整理
@@ -652,16 +702,23 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
     }
 
     for(let vec of array){
-        const planeGeo = new THREE.PlaneGeometry(2, 2); //サイズ
-        const planeMat = new THREE.MeshPhongMaterial({map: button_tex, transparent: true});
-        const mesh = new THREE.Mesh(planeGeo, planeMat);
-        mesh.rotation.x = Math.PI * -.5;
-        //sceneに追加
-        mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
-        // mesh.name = `button_${vec[3]}`;
-        mesh.name = `Button_${vec[3]}`;
-        buttons.push(mesh);
-        scene.add(mesh);
+        // const planeGeo = new THREE.PlaneGeometry(2, 2); //サイズ
+        // const planeMat = new THREE.MeshPhongMaterial({map: button_tex, transparent: true});
+        // const mesh = new THREE.Mesh(planeGeo, planeMat);
+        // mesh.rotation.x = Math.PI * -.5;
+        const loader = new THREE.TextureLoader();
+        loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
+            const geometry = new THREE.SphereGeometry(2, 8, 8);
+            const material =  new THREE.MeshLambertMaterial({map: texture});
+            const mesh = new THREE.Mesh( geometry, material);
+
+            //sceneに追加
+            mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
+            // mesh.name = `button_${vec[3]}`;
+            mesh.name = `Button_${vec[4]}`;
+            buttons.push(mesh);
+            scene.add(mesh);
+        });
     }
 }
 
@@ -842,6 +899,7 @@ function move_camera(){ //3dの時のみ実行
         street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
         // street_controls.enableDamping = false;
         street_move(turn_info.to);
+        console.log(turn_info.to);
 
         //UI挿入
         container.insertAdjacentHTML("afterbegin",`
@@ -1147,7 +1205,6 @@ function render() {
     } else { //street view 中
         renderer.render(street_scene, street_camera);
         street_controls.update();
-
         let x = street_camera.position.x, z = street_camera.position.z;
         x *= -1; z *= -1;
         //矢印の移動
