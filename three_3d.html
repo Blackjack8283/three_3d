@@ -25,8 +25,8 @@ const stage = document.getElementById("stage");
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
-const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
-// const user_phone = true;
+// const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
+const user_phone = true;
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -105,7 +105,7 @@ street_scene.name = undefined;
 
 //カメラ
 const street_camera = new THREE.PerspectiveCamera(75, width / height, 0.01,50);
-street_camera.position.set(0.1, 0, 0);
+street_camera.position.set(0.01, 0, 0);
 street_scene.add(street_camera);
 
 //画像を貼る球の作成
@@ -158,6 +158,7 @@ function create_controls(cam,elem){
 
     return controls;
 }
+console.log(controls);
 
 stage.appendChild(element);
 
@@ -175,6 +176,7 @@ stick.addEventListener("pointerdown", (e)=>{
     // console.log(e);
     // let up = new Event('pointerup');
     // window.dispatchEvent(up);
+    controls.enabled = false;
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     stick_flag = true;
@@ -189,9 +191,11 @@ stick.addEventListener("pointermove", (e)=>{
     curv.set(y, x);
 });
 
-stick.addEventListener("pointerleave", ()=>{ stick_flag = false; });
+stick.addEventListener("pointerleave", ()=>{ stick_flag = false; 
+    controls.enabled = true;});
 
-stick.addEventListener("pointerup", ()=>{ stick_flag = false; });
+stick.addEventListener("pointerup", ()=>{ stick_flag = false; 
+    controls.enabled = true;});
 
 window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false});//iosスクロール防止用
 
@@ -242,6 +246,8 @@ window.addEventListener("keyup",(e)=>{
         key_flag[4] = false;
     } else if(key == "Shift"){
         key_flag[5] = false;
+    } else if(key == "Escape"){
+        key_flag = [false,false,false,false,false,false];
     }
 });
 
@@ -569,16 +575,20 @@ function load_obj(mtl_file_name, obj_file_name){
 
 let loaded = false;
 const urls = [
-    [undefined,"3dMap_south_1F.obj"],
+    [undefined,"3dMap_south_1F.obj"], //0
     [undefined,"3dMap_south_2F.obj"],
     [undefined,"3dMap_south_3F.obj"],
     [undefined,"3dMap_south_4F.obj"],
     [undefined,"3dMap_south_ceiling.obj"],
-    [undefined,"3dMap_north_1F.obj"],
+    [undefined,"3dMap_north_1F.obj"], //5
     [undefined,"3dMap_north_2F.obj"],
     [undefined,"3dMap_north_3F.obj"],
     [undefined,"3dMap_north_4F.obj"],
     [undefined,"3dMap_north_ceiling.obj"],
+    [undefined,"3dMap_east_bridge.obj"], //10
+    [undefined,"3dMap_east_ceiling.obj"],
+    [undefined,"3dMap_west_bridge.obj"],
+    [undefined,"3dMap_west_ceiling.obj"]
 ];
 const groups_len = urls.length;
 
@@ -587,13 +597,17 @@ const groups_len = urls.length;
         await load_obj(urls[i][0],urls[i][1]).then((root) => {
             groups[i] = root;
             groups[i].name = i; //番号
+            groups[i].scale.set(3,3,3);
             if(0 <= i && i <= 4){
-                groups[i].part_of = "south"; //建物識別
-                groups[i].scale.set(3,3,3);
+                groups[i].part_of = "south"; //建物識別用の名前
             } else if(5 <= i && i <= 9){
                 groups[i].part_of = "north";
-                groups[i].scale.set(3,3,3);
+            } else if(10 <= i && i <= 11){
+                groups[i].part_of = "east_bridge";
+            } else if(12 <= i && i <= 13){
+                groups[i].part_of = "west_bridge";
             }
+
             groups[i].ori_position = groups[i].position.clone();
             scene.add(groups[i]);
         });
@@ -604,11 +618,15 @@ const groups_len = urls.length;
 //青ボタン生成
 function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
-    if(number == 4 || number == 9) return;
+    if(number == 4 || number == 9 || number == 11) return;
     if(0 <= number && number <= 3){
         array = posi[0][number];
     } else if(5 <= number && number <= 8){
         array = posi[1][number-5];
+    } else if(number == 10){
+        array = posi[2][number-10];
+    } else if(number == 12){
+        array = posi[3][number-12];
     }
 
     for(let vec of array){
@@ -783,7 +801,7 @@ function move_camera(){ //3dの時のみ実行
         if(turn_info.theta + diff1 < 0) diff1 = 0;
     }
 
-    const diff2 = ease_diff(turn_info.cnt1, 0, 0.0057);
+    const diff2 = ease_diff(turn_info.cnt1, 0.001, 0.0057);
     const diff3 = ease_diff(turn_info.cnt2, 1, 0.01);
 
     if(turn_info.rad){
@@ -803,13 +821,12 @@ function move_camera(){ //3dの時のみ実行
         controls.minDistance = 0.01;
         console.log("終了");
         camera_target.copy(turn_info.oav);
-        camera.position.copy(turn_info.oav.add(turn_info.ahv.normalize().multiplyScalar(0.01)));
+        camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
         street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
         // street_controls.enableDamping = false;
         street_move(turn_info.to);
-
         //UI挿入
         container.insertAdjacentHTML("afterbegin",`
             <div id='menubar'>
@@ -840,17 +857,14 @@ function move_camera(){ //3dの時のみ実行
         `);
         return;
     }
-
     //カメラ移動
     const onv = new THREE.Vector3(turn_info.ocv.x, turn_info.ahv.length()*Math.tan(turn_info.theta)+turn_info.oav.y, turn_info.ocv.z);
     camera.position.copy( turn_info.oav.clone().multiplyScalar(1-turn_info.cnt1)
-                        .add(onv.multiplyScalar(turn_info.cnt1))
-                        .add((new THREE.Vector3(0,0.1,0))));
+                        .add(onv.multiplyScalar(turn_info.cnt1)));
 
     //target 移動
     controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
-                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2))
-                        .add(new THREE.Vector3(0,0.1,0))); //カメラと同様に足して平行に
+                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
 }
 
 //画面変更・位置更新(global)
@@ -1112,8 +1126,8 @@ function render() {
         controls.update(); //ここでupdate
         renderer.render(scene, camera);
     } else { //street view 中
+        street_controls.update(); //直前でupdate
         renderer.render(street_scene, street_camera);
-        street_controls.update();
         let x = street_camera.position.x, z = street_camera.position.z;
         x *= -1; z *= -1;
         //矢印の移動
