@@ -25,8 +25,8 @@ const stage = document.getElementById("stage");
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
-// const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
-const user_phone = true;
+const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
+// const user_phone = true;
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -78,11 +78,13 @@ scene.add(camera);
 //平行光源 追加
 {
     const color = 0xFFFFFF;
-    const intensity = 0.8;
-    const light = new THREE.DirectionalLight(color, intensity);
-    light.position.set(5, 10, 2);
-    scene.add(light);
-    // scene.add(light.target);
+    const intensity = 0.4;
+    const light1 = new THREE.DirectionalLight(color, intensity);
+    light1.position.set(5, 10, 2);
+    scene.add(light1);
+    const light2 = new THREE.DirectionalLight(color, intensity);
+    light2.position.set(-5, 10, -2);
+    scene.add(light2);
 }
 
 //外側の球
@@ -91,7 +93,7 @@ scene.add(camera);
     loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
         const geometry = new THREE.SphereGeometry(250, 32, 32);
         geometry.scale(-1, 1, 1);
-        const material =  new THREE.MeshLambertMaterial({map: texture});
+        const material =  new THREE.MeshLambertMaterial({color: 0x87ceeb});
         const sphere = new THREE.Mesh( geometry, material);
         scene.add( sphere );
     });
@@ -139,7 +141,7 @@ const controls = create_controls(camera,element); //control 作成
     controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
     controls.minPolarAngle = 0.01;
 const street_controls = create_controls(street_camera,element);
-    street_controls.enableDamping = false;
+    street_controls.enabled = false;
 
 function create_controls(cam,elem){
     const controls = new OrbitControls(cam, elem);
@@ -158,7 +160,6 @@ function create_controls(cam,elem){
 
     return controls;
 }
-console.log(controls);
 
 stage.appendChild(element);
 
@@ -173,9 +174,6 @@ handleResize();
 let stick_flag = false;
 let curv = new THREE.Vector2(0,0);
 stick.addEventListener("pointerdown", (e)=>{
-    // console.log(e);
-    // let up = new Event('pointerup');
-    // window.dispatchEvent(up);
     controls.enabled = false;
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
@@ -184,20 +182,22 @@ stick.addEventListener("pointerdown", (e)=>{
 });
 
 stick.addEventListener("pointermove", (e)=>{
-    // let up = new Event('pointerup');
-    // window.dispatchEvent(up);
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     curv.set(y, x);
 });
 
-stick.addEventListener("pointerleave", ()=>{ stick_flag = false; 
-    controls.enabled = true;});
+stick.addEventListener("pointerleave", ()=>{
+    stick_flag = false; 
+    controls.enabled = true;
+});
 
-stick.addEventListener("pointerup", ()=>{ stick_flag = false; 
-    controls.enabled = true;});
+stick.addEventListener("pointerup", ()=>{
+    stick_flag = false; 
+    controls.enabled = true;
+});
 
-window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false});//iosスクロール防止用
+// window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false});//iosスクロール防止用
 
 //クリック
 element.addEventListener("pointerdown", (e) => {
@@ -329,8 +329,14 @@ window.del = () => {
     document.getElementById("spotviewer").remove();
     document.querySelector(".modep").remove();
     mode = "3d";
-    controls.enableDamping = true;
-    controls.enableRotate = true;
+    street_controls.enabled = false;
+    controls.enabled = true;
+    camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+    const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
+    camera.position.copy(
+        camera_target.clone()
+        .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
+    );
     stick.style.display = "block";
 };
 
@@ -618,7 +624,7 @@ const groups_len = urls.length;
 //青ボタン生成
 function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
-    if(number == 4 || number == 9 || number == 11) return;
+    // if(number == 4 || number == 9 || number == 11 || number == 13) return;
     if(0 <= number && number <= 3){
         array = posi[0][number];
     } else if(5 <= number && number <= 8){
@@ -627,26 +633,18 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
         array = posi[2][number-10];
     } else if(number == 12){
         array = posi[3][number-12];
-    }
+    } else return;
 
     for(let vec of array){
-        // const planeGeo = new THREE.PlaneGeometry(2, 2); //サイズ
-        // const planeMat = new THREE.MeshPhongMaterial({map: button_tex, transparent: true});
-        // const mesh = new THREE.Mesh(planeGeo, planeMat);
-        // mesh.rotation.x = Math.PI * -.5;
-        const loader = new THREE.TextureLoader();
-        loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
-            const geometry = new THREE.SphereGeometry(2, 8, 8);
-            const material =  new THREE.MeshLambertMaterial({map: texture});
-            const mesh = new THREE.Mesh( geometry, material);
-
-            //sceneに追加
-            mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
-            // mesh.name = `button_${vec[3]}`;
-            mesh.name = `Button_${vec[4]}`;
-            buttons.push(mesh);
-            scene.add(mesh);
-        });
+        const geometry = new THREE.SphereGeometry(3, 16, 16);
+        const material =  new THREE.MeshLambertMaterial({color: 0x00bfff, transparent: true, opacity: 0.5});
+        const mesh = new THREE.Mesh( geometry, material);
+        //sceneに追加
+        mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
+        // mesh.name = `button_${vec[3]}`;
+        mesh.name = `Button_${vec[4]}`;
+        buttons.push(mesh);
+        scene.add(mesh);
     }
 }
 
@@ -732,7 +730,8 @@ function click(x,y) {
                 // console.log(nearest.dist);
                 if(nearest.dist < 5){
                     //カメラ移動
-                    camera_trigger(nearest.position);
+                    console.log(nearest);
+                    camera_trigger(nearest.button);
                 } else if(state != obj.name){ //異なる階選択時
                     //校舎の上下
                     if(state != "closed" && groups[state].part_of == groups[obj.name].part_of && state < obj.name){
@@ -776,8 +775,14 @@ function camera_trigger(button){ //3dモデル操作中のみ実行
     const h = oav.clone().dot(new THREE.Vector3(0,1,0));
     const n = new THREE.Vector3(0,1,0);
     const m = camera_target.clone().sub(camera.position);
-    const oiv = camera.position.clone()
-            .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / (n.clone().dot(m)) ));
+    let oiv;
+
+    if(n.clone().dot(m) == 0) m.sub(new THREE.Vector3(0,0.001,0)); //並行対策
+    if(n.clone().dot(m) * n.clone().dot(acv.clone().negate()) < 0) oiv = camera_target.clone(); //特殊な場合
+    else{
+        oiv = camera.position.clone()
+            .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / n.clone().dot(m) ));
+    } 
 
     //移行用
     controls.enableDamping = false;
@@ -819,13 +824,17 @@ function move_camera(){ //3dの時のみ実行
         turn_flag = false;
         controls.maxDistance = 0.01;
         controls.minDistance = 0.01;
+        controls.enableDamping = true;
+        controls.enableRotate = true;
+        street_controls.enabled = true;
+        controls.enabled = false;
         console.log("終了");
         camera_target.copy(turn_info.oav);
         camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
         street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
-        // street_controls.enableDamping = false;
+
         street_move(turn_info.to);
         //UI挿入
         container.insertAdjacentHTML("afterbegin",`
@@ -855,6 +864,8 @@ function move_camera(){ //3dの時のみ実行
 
             <div class="modep" style="display: none"></div>
         `);
+        document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls.enabled = false; });
+        document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls.enabled = true; });
         return;
     }
     //カメラ移動
@@ -1133,7 +1144,7 @@ function render() {
         //矢印の移動
         for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+originposi[i][0], -1.3-i*0.001, 15*z+originposi[i][1]);
     }
-
+    // console.log(camera.position);
     timeCheck();
     if(limited){ //30fps
         render_cnt *= -1;
