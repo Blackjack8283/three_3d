@@ -259,8 +259,8 @@ let buttons = [];
 
 let posi_line = [];  //[x,y,z, 枚数, 校舎,階番号]
 let posi = [         //[x,y,z, 枚数,点番号]
-    [ [],[],[],[] ], //南校舎
-    [ [],[],[],[] ], //北校舎
+    [ [],[],[],[],[] ], //南校舎
+    [ [],[],[],[],[] ], //北校舎
     [ [],[]       ], //東橋
     [ [],[]       ], //西橋
     [ [],[],[]    ], //食堂・体育館
@@ -337,6 +337,26 @@ window.del = () => {
         camera_target.clone()
         .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
     );
+    let num = posi_line[cur][5];
+    for(let i = 1; i <= posi_line[cur][4]; i++){
+        num += posi[i-1].length;
+    }
+    console.log(num);
+    if(state != num){ //異なる階選択時
+        //校舎の上下
+        if(state != "closed" && groups[state].part_of == groups[num].part_of && state < num){
+            //同じ校舎かつ現在より上
+            add_later = true;
+        } else {
+            //現在より下か他校舎
+            delete_buttons();
+            generate_buttons(num);
+            add_later = false;
+    
+            state = num;
+            move_groups_flag = true;
+        }
+    }
     stick.style.display = "block";
 };
 
@@ -624,7 +644,6 @@ const groups_len = urls.length;
 //青ボタン生成
 function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
-    // if(number == 4 || number == 9 || number == 11 || number == 13) return;
     if(0 <= number && number <= 3){
         array = posi[0][number];
     } else if(5 <= number && number <= 8){
@@ -743,7 +762,7 @@ function click(x,y) {
                         generate_buttons(obj.name);
                         add_later = false;
                     }
-
+                    console.log(obj.name);
                     state = obj.name;
                     move_groups_flag = true;
                 }
