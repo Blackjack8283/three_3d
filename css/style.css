@@ -5,6 +5,50 @@ body, html {
     user-select: none;
     touch-action: manipulation;
 }
+#searchdiv{
+    top: 0px;
+    right: 0px;
+    width: 150px;
+    /* height: 50%; */
+    /* height: 20px; */
+    z-index: 5;
+    /* display: block; */
+    position: absolute;
+    /* user-select: none;
+    touch-action: manipulation; */
+}
+#search{
+    /* top: 0px;
+    right: 0px; */
+    width: 100%;
+    height: 21px;
+    /* z-index: 5; */
+    /* display: block; */
+    /* position: absolute; */
+    /* border-radius: unset; */
+    border: none;
+    appearance: none;
+    background-color: rgb(255, 160, 00);
+}
+#searchres{
+    /* right: 0px;
+    top: 26px; */
+    width: 100%;
+    height: 300px;
+    /* z-index: 5; */
+    background-color: rgb(255, 160, 00);
+    /* position: absolute; */
+    /* position: fixed;*/
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* white-space: nowrap; */
+    /* -ms-overflow-style: none;    IE, Edge 対応 */
+    /* scrollbar-width: none; */ 
+}
+.space{
+    width: 100%;
+    height: 300px;
+}
 #spotviewer {
     width: 100%;
     height: 25%;

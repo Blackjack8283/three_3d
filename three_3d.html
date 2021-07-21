@@ -19,7 +19,19 @@ let width = document.documentElement.clientWidth;
 let height = document.documentElement.clientHeight;
 let container = document.getElementById("container");
 
-container.insertAdjacentHTML("afterbegin","<div id='stage'></div>");
+container.insertAdjacentHTML("afterbegin",`
+    <div id='stage'></div>
+    <div id="searchdiv">
+        <input type="text" id="search" placeholder="検索">
+        <div id="searchres">
+            <div class="space"></div>
+            <div class="space"></div>
+            <div class="space"></div>
+            <div class="space"></div>
+            <div class="space"></div>
+        </div>
+    </div>
+`);
 const stage = document.getElementById("stage");
 
 let mode = "3d"; //3dモデルかstreet viewか
@@ -89,14 +101,11 @@ scene.add(camera);
 
 //外側の球
 {
-    const loader = new THREE.TextureLoader();
-    loader.load('https://82mou.github.io/threejs/img/earth.jpg', function(texture) {
-        const geometry = new THREE.SphereGeometry(250, 32, 32);
-        geometry.scale(-1, 1, 1);
-        const material =  new THREE.MeshLambertMaterial({color: 0x87ceeb});
-        const sphere = new THREE.Mesh( geometry, material);
-        scene.add( sphere );
-    });
+    const geometry = new THREE.SphereGeometry(250, 32, 32);
+    geometry.scale(-1, 1, 1);
+    const material =  new THREE.MeshLambertMaterial({color: 0x87ceeb});
+    const sphere = new THREE.Mesh( geometry, material);
+    scene.add( sphere );
 }
 /*↑____________________________ここまで3d用scene__________________________________________________*/
 
@@ -341,7 +350,7 @@ window.del = () => {
     for(let i = 1; i <= posi_line[cur][4]; i++){
         num += posi[i-1].length;
     }
-    console.log(num);
+    
     if(state != num){ //異なる階選択時
         //校舎の上下
         if(state != "closed" && groups[state].part_of == groups[num].part_of && state < num){
@@ -352,10 +361,9 @@ window.del = () => {
             delete_buttons();
             generate_buttons(num);
             add_later = false;
-    
-            state = num;
-            move_groups_flag = true;
         }
+        state = num;
+        move_groups_flag = true;
     }
     stick.style.display = "block";
 };
@@ -762,7 +770,6 @@ function click(x,y) {
                         generate_buttons(obj.name);
                         add_later = false;
                     }
-                    console.log(obj.name);
                     state = obj.name;
                     move_groups_flag = true;
                 }
@@ -1045,7 +1052,6 @@ function move_camera_target(){
 }
 
 function handleResize() {
-    console.log("resized");
     width = document.documentElement.clientWidth;
     height = document.documentElement.clientHeight;
      //canvas更新
