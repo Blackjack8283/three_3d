@@ -21,6 +21,10 @@ let container = document.getElementById("container");
 
 container.insertAdjacentHTML("afterbegin",`
     <div id='stage'></div>
+`);
+const stage = document.getElementById("stage");
+if(navigator.userAgent.match(/crios/i) == null){
+    container.insertAdjacentHTML("afterbegin",`
     <div id="searchdiv">
         <input type="text" id="search" placeholder="検索">
         <div id="searchres">
@@ -32,7 +36,7 @@ container.insertAdjacentHTML("afterbegin",`
         </div>
     </div>
 `);
-const stage = document.getElementById("stage");
+}
 
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1

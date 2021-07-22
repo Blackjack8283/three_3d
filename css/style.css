@@ -9,45 +9,43 @@ body, html {
     top: 0px;
     right: 0px;
     width: 150px;
-    /* height: 50%; */
-    /* height: 20px; */
     z-index: 5;
-    /* display: block; */
     position: absolute;
-    /* user-select: none;
-    touch-action: manipulation; */
 }
 #search{
-    /* top: 0px;
-    right: 0px; */
     width: 100%;
-    height: 21px;
-    /* z-index: 5; */
-    /* display: block; */
-    /* position: absolute; */
-    /* border-radius: unset; */
-    border: none;
-    appearance: none;
+    height: 25px;
+    box-sizing: border-box;
+    border-radius: 0;
+    font-size: 16px;
     background-color: rgb(255, 160, 00);
 }
 #searchres{
-    /* right: 0px;
-    top: 26px; */
+
     width: 100%;
-    height: 300px;
-    /* z-index: 5; */
+    height: 60vh;
     background-color: rgb(255, 160, 00);
-    /* position: absolute; */
-    /* position: fixed;*/
     overflow-x: hidden;
     overflow-y: auto;
-    /* white-space: nowrap; */
-    /* -ms-overflow-style: none;    IE, Edge 対応 */
-    /* scrollbar-width: none; */ 
+}
+#searchres::-webkit-scrollbar {  /* Chrome, Safari 対応 */
+    width: 8px;
+}
+#searchres::-webkit-scrollbar-track {
+    border-radius: 10px;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, .1);
+    border-radius: 10px;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, .1);
+}
+#searchres::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 50, .5);
+    border-radius: 10px;
+    box-shadow:0 0 0 1px rgba(255, 255, 255, .3);
 }
 .space{
     width: 100%;
     height: 300px;
+    background-color: rgb(200, 160, 100);
 }
 #spotviewer {
     width: 100%;
@@ -64,7 +62,7 @@ body, html {
 }
 #spotviewer::-webkit-scrollbar {  /* Chrome, Safari 対応 */
     /* display:none; */
-    height: 10px;
+    height: 8px;
 }
 #spotviewer::-webkit-scrollbar-track {
     border-radius: 10px;
@@ -72,8 +70,6 @@ body, html {
     border-radius: 10px;
     box-shadow: inset 0 0 6px rgba(0, 0, 0, .1);
 }
-
-/*スクロールバーの動く部分*/
 #spotviewer::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 50, .5);
     border-radius: 10px;
