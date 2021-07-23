@@ -23,19 +23,45 @@ container.insertAdjacentHTML("afterbegin",`
     <div id='stage'></div>
 `);
 const stage = document.getElementById("stage");
-if(navigator.userAgent.match(/crios/i) == null){
+let focused = false;
+const crios = navigator.userAgent.match(/crios/i);
+let search, searchres;
+if(crios == null){
     container.insertAdjacentHTML("afterbegin",`
-    <div id="searchdiv">
-        <input type="text" id="search" placeholder="検索">
-        <div id="searchres">
-            <div class="space"></div>
-            <div class="space"></div>
-            <div class="space"></div>
-            <div class="space"></div>
-            <div class="space"></div>
+        <div id="searchdiv">
+            <input type="text" id="search" placeholder="検索">
+            <div id="searchres"></div>
         </div>
-    </div>
-`);
+    `);
+    search = document.getElementById("search");
+    searchres = document.getElementById("searchres");
+    search.addEventListener("input", ()=>{
+        let val = search.value;
+        searchres.style.display = "none";
+        while(searchres.firstChild){
+            searchres.removeChild(searchres.firstChild);
+        }
+        if(val == "") return;
+        for(let i = 0; i < des_len; i++){
+            const text = description[i];
+            if(text.indexOf(val) != -1){
+                searchres.style.display = "block";
+                searchres.insertAdjacentHTML("afterbegin",`
+                    <div class="res" id="res${i}">${text}</div>
+                `);
+                const obj = {
+                    position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
+                    name: `button_${i}`
+                }
+                const resdiv = document.getElementById(`res${i}`);
+                resdiv.addEventListener("pointerdown", ()=>{move_groups_trigger(i,true)});
+                resdiv.addEventListener("pointerdown", ()=>{camera_trigger(obj)});
+            }
+        }
+    });
+    search.addEventListener("focus", ()=>{ focused = true; });
+    search.addEventListener("blur", ()=>{ focused = false; });
+    window.addEventListener("pointerdown", ()=>{ search.blur(); });
 }
 
 let mode = "3d"; //3dモデルかstreet viewか
@@ -229,6 +255,7 @@ element.addEventListener("pointerup", (e) => {
 
 let key_flag = [false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
+    if(focused) return;
     const key = e.key;
     if(key == "w" || key == "W" || key == "ArrowUp"){
         key_flag[0] = true;
@@ -279,17 +306,20 @@ let posi = [         //[x,y,z, 枚数,点番号]
     [ [],[],[]    ], //食堂・体育館
     [ [],[]       ], //講堂
 ];
-let posi_line_len;
+let posi_line_len, des_len;
 let connection = [];
 let map = [];
 let images = [];
+let description = [];
 
 fetch("./locations.json")
     .then(res => res.json())
     .then(data => {
         posi_line = data.position;
         connection = data.connection;
+        description = data.description;
         posi_line_len = posi_line.length;
+        des_len = description.length;
 
         //posiに整理
         for(let i=0; i<posi_line_len; ++i){
@@ -350,27 +380,34 @@ window.del = () => {
         camera_target.clone()
         .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
     );
-    let num = posi_line[cur][5];
-    for(let i = 1; i <= posi_line[cur][4]; i++){
-        num += posi[i-1].length;
+    move_groups_trigger(cur,true);
+    stick.style.display = "block";
+    if(crios == null) search.style.display = "block";
+};
+
+window.move_groups_trigger = (cur,needs_calc)=>{
+    if(needs_calc){
+        let num = posi_line[cur][5];
+        for(let i = 1; i <= posi_line[cur][4]; i++){
+            num += posi[i-1].length;
+        }
+        cur = num;
     }
-    
-    if(state != num){ //異なる階選択時
+    if(state != cur){ //異なる階選択時
         //校舎の上下
-        if(state != "closed" && groups[state].part_of == groups[num].part_of && state < num){
+        if(state != "closed" && groups[state].part_of == groups[cur].part_of && state < cur){
             //同じ校舎かつ現在より上
             add_later = true;
         } else {
             //現在より下か他校舎
             delete_buttons();
-            generate_buttons(num);
+            generate_buttons(cur);
             add_later = false;
         }
-        state = num;
+        state = cur;
         move_groups_flag = true;
     }
-    stick.style.display = "block";
-};
+}
 
 let spot = -1;
 // スポットセレクト(global)
@@ -751,7 +788,9 @@ function click(x,y) {
                 const point = bump[0].point;
                 let nearest = {dist: 1e9, button: undefined};
                 //最も近いボタン求める
-                for(let button of buttons){
+                let len = buttons.length;
+                for(let i = 0; i < len; i++){
+                    let button = buttons[i];
                     const new_dist = button.position.clone().sub(point).length();
                     if(nearest.dist > new_dist){
                         nearest.dist = new_dist;
@@ -761,22 +800,8 @@ function click(x,y) {
                 // console.log(nearest.dist);
                 if(nearest.dist < 5){
                     //カメラ移動
-                    console.log(nearest);
                     camera_trigger(nearest.button);
-                } else if(state != obj.name){ //異なる階選択時
-                    //校舎の上下
-                    if(state != "closed" && groups[state].part_of == groups[obj.name].part_of && state < obj.name){
-                        //同じ校舎かつ現在より上
-                        add_later = true;
-                    } else {
-                        //現在より下か他校舎
-                        delete_buttons();
-                        generate_buttons(obj.name);
-                        add_later = false;
-                    }
-                    state = obj.name;
-                    move_groups_flag = true;
-                }
+                } else move_groups_trigger(obj.name, false);
             //その他クリック -> closed
             } else {
                 delete_buttons();
@@ -790,8 +815,8 @@ function click(x,y) {
 let turn_flag = false;
 let turn_info; //obj
 
-//move_camera関数のトリガー(計算)
-function camera_trigger(button){ //3dモデル操作中のみ実行
+//move_camera関数のトリガー(計算)(global)
+window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     const oav = button.position;
     const ocv = camera.position.clone();
     const acv = ocv.clone().sub(oav);
@@ -820,6 +845,14 @@ function camera_trigger(button){ //3dモデル操作中のみ実行
     controls.maxDistance = Infinity;
     controls.minDistance = 0;
     stick.style.display = "none";
+    if(crios == null){
+        search.style.display = "none";
+        searchres.style.display = "none";
+        search.value = "";
+        while(searchres.firstChild){
+            searchres.removeChild(searchres.firstChild);
+        }
+    }
 
     turn_flag = true;
     turn_info = {ahv: ahv, ocv: ocv, oav: oav, theta: theta, oiv:oiv, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
