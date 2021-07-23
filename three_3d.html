@@ -24,45 +24,53 @@ container.insertAdjacentHTML("afterbegin",`
 `);
 const stage = document.getElementById("stage");
 let focused = false;
-const crios = navigator.userAgent.match(/crios/i);
 let search, searchres;
-if(crios == null){
-    container.insertAdjacentHTML("afterbegin",`
-        <div id="searchdiv">
-            <input type="text" id="search" placeholder="検索">
-            <div id="searchres"></div>
-        </div>
-    `);
-    search = document.getElementById("search");
-    searchres = document.getElementById("searchres");
-    search.addEventListener("input", ()=>{
-        let val = search.value;
-        searchres.style.display = "none";
-        while(searchres.firstChild){
-            searchres.removeChild(searchres.firstChild);
-        }
-        if(val == "") return;
-        for(let i = 0; i < des_len; i++){
-            const text = description[i];
-            if(text.indexOf(val) != -1){
-                searchres.style.display = "block";
-                searchres.insertAdjacentHTML("afterbegin",`
-                    <div class="res" id="res${i}">${text}</div>
-                `);
-                const obj = {
-                    position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
-                    name: `button_${i}`
-                }
-                const resdiv = document.getElementById(`res${i}`);
-                resdiv.addEventListener("pointerdown", ()=>{move_groups_trigger(i,true)});
-                resdiv.addEventListener("pointerdown", ()=>{camera_trigger(obj)});
+container.insertAdjacentHTML("afterbegin",`
+    <div id="searchdiv">
+        <input type="text" id="search" placeholder="検索">
+        <div id="searchres"></div>
+    </div>
+`);
+search = document.getElementById("search");
+searchres = document.getElementById("searchres");
+search.addEventListener("input", ()=>{
+    let val = search.value;
+    searchres.style.display = "none";
+    while(searchres.firstChild){
+        searchres.removeChild(searchres.firstChild);
+    }
+    if(val == "") return;
+    for(let i = 0; i < des_len; i++){
+        const text = description[i];
+        if(text.indexOf(val) != -1){
+            searchres.style.display = "block";
+            searchres.insertAdjacentHTML("beforeend",`
+                <div class="res" id="res${i}">${text}</div>
+            `);
+            const obj = {
+                position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
+                name: `button_${i}`
             }
+            const resdiv = document.getElementById(`res${i}`);
+            resdiv.addEventListener("pointerup", ()=>{
+                move_groups_trigger(i,true);
+                camera_trigger(obj);
+                search.blur();
+            }); 
         }
-    });
-    search.addEventListener("focus", ()=>{ focused = true; });
-    search.addEventListener("blur", ()=>{ focused = false; });
-    window.addEventListener("pointerdown", ()=>{ search.blur(); });
-}
+    }
+});
+search.addEventListener("focus", ()=>{
+    focused = true;
+    if(searchres.firstChild) searchres.style.display = "block";
+});
+search.addEventListener("pointerdown", (e)=>{e.stopPropagation();});
+search.addEventListener("blur", ()=>{ focused = false; });
+searchres.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
+window.addEventListener("pointerdown", ()=>{
+    search.blur();
+    searchres.style.display = "none";
+});
 
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
@@ -82,7 +90,7 @@ scene.add(camera);
 
 //地面
 {
-    const planeSize = 512;
+    const planeSize = 1024;
 
     //画像
     const texture = new THREE.TextureLoader().load('../images/grass.png');
@@ -131,7 +139,7 @@ scene.add(camera);
 
 //外側の球
 {
-    const geometry = new THREE.SphereGeometry(250, 32, 32);
+    const geometry = new THREE.SphereGeometry(400, 64, 64);
     geometry.scale(-1, 1, 1);
     const material =  new THREE.MeshLambertMaterial({color: 0x87ceeb});
     const sphere = new THREE.Mesh( geometry, material);
@@ -382,7 +390,7 @@ window.del = () => {
     );
     move_groups_trigger(cur,true);
     stick.style.display = "block";
-    if(crios == null) search.style.display = "block";
+    search.style.display = "block";
 };
 
 window.move_groups_trigger = (cur,needs_calc)=>{
@@ -438,7 +446,6 @@ window.better_view = ()=>{
             // minimap.style.display = "none";
             // minibutton.style.display = "none";
             arrows.forEach((val) => {street_scene.remove(val);});
-            console.log(arrows);
             document.getElementById("menubar").style.top = "calc(-13vmin - 6px)";
             document.getElementById("spotviewer").style.top = `-${high}%`;
             document.getElementById("container").insertAdjacentHTML("afterbegin","<div id='showb' onclick='better_view()'><div id='showbv'></div></div>");
@@ -463,12 +470,11 @@ window.better_view = ()=>{
             element.removeEventListener("pointerdown", show_bar, {passive: true});
             element.removeEventListener("pointerup", hide_bar, {passive: true});
             document.getElementById("container").removeEventListener("pointerleave", hide_bar, {passive: true});
-
-            if(document.fullscreenElement){
-                if      (document.exitFullscreen)       document.exitFullscreen();
-                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                else if (document.mozCancelFullScreen)  document.mozCancelFullScreen();
-                else if (document.msExitFullscreen)     document.msExitFullscreen();
+            if(document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement){
+                if      (document.fullscreenEnabled)        document.exitFullscreen();
+                else if (document.webkitFullscreenEnabled)  document.webkitCancelFullScreen();
+                else if (document.mozFullScreenEnabled)     document.mozCancelFullScreen();
+                else if (document.msFullscreenEnabled)      document.msExitFullscreen();
             }
 
             view_cnt++;
@@ -479,17 +485,16 @@ window.better_view = ()=>{
     else {
         view_cnt++;
         if(!user_ios){
-            if     (document.fullscreenEnabled)         document.getElementById("container").requestFullscreen();
-            else if(document.webkitFullscreenEnabled)   document.getElementById("container").webkitRequestFullscreen();
-            else if(document.mozFullScreenEnabled)      document.getElementById("container").mozRequestFullScreen();
-            else if(document.msFullscreenEnabled)       document.getElementById("container").msRequestFullscreen();
+            if     (document.fullscreenEnabled)         document.body.requestFullscreen();
+            else if(document.webkitFullscreenEnabled)   document.body.webkitRequestFullscreen();
+            else if(document.mozFullScreenEnabled)      document.body.mozRequestFullScreen();
+            else if(document.msFullscreenEnabled)       document.body.msRequestFullscreen();
             else                                        hide_show();
         } else hide_show();
     }
 };
 
 function show_bar(){
-    console.log("show");
     b.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
     bv.style.transition = "all 0.1s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
     b.style.backgroundColor = "rgba(255, 255, 255, .6)";
@@ -503,7 +508,6 @@ function show_bar(){
 }
 
 function hide_bar(){
-    console.log("hide");
     b.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
     bv.style.transition = "all 3s cubic-bezier(0.55, 0.06, 0.68, 0.19)";
     b.style.backgroundColor = "rgba(255, 255, 255, .0)";
@@ -732,7 +736,6 @@ let pre_elem_name;
 let pre_posi = {x:undefined, y:undefined} ; //obj
 function pre_click(x,y){
     pre_posi.x = x; pre_posi.y =  y;
-    // console.log(pre_posi);
 
     const mouse = new THREE.Vector2();
     mouse.x = (x / width) * 2 - 1;
@@ -783,7 +786,6 @@ function click(x,y) {
                 
             //校舎クリック obj.name: 0,1,2,...
             } else if(obj.name != undefined){
-                // console.log(bump[0].object.name);
                 //スマホ救済用 青ボタン判定ゆるく
                 const point = bump[0].point;
                 let nearest = {dist: 1e9, button: undefined};
@@ -797,7 +799,6 @@ function click(x,y) {
                         nearest.button = button;
                     }
                 }
-                // console.log(nearest.dist);
                 if(nearest.dist < 5){
                     //カメラ移動
                     camera_trigger(nearest.button);
@@ -845,13 +846,11 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     controls.maxDistance = Infinity;
     controls.minDistance = 0;
     stick.style.display = "none";
-    if(crios == null){
-        search.style.display = "none";
-        searchres.style.display = "none";
-        search.value = "";
-        while(searchres.firstChild){
-            searchres.removeChild(searchres.firstChild);
-        }
+    search.style.display = "none";
+    searchres.style.display = "none";
+    search.value = "";
+    while(searchres.firstChild){
+        searchres.removeChild(searchres.firstChild);
     }
 
     turn_flag = true;
@@ -891,7 +890,6 @@ function move_camera(){ //3dの時のみ実行
         controls.enableRotate = true;
         street_controls.enabled = true;
         controls.enabled = false;
-        console.log("終了");
         camera_target.copy(turn_info.oav);
         camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
@@ -1012,21 +1010,6 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
     }
 }
 
-const ori = new THREE.Vector3(10,120,80);
-let dir = camera_target.clone().sub(camera.position).normalize();
-const arrowHelper1 = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), ori,30,0xffff00);
-scene.add( arrowHelper1 );
-const arrowHelper2 = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), ori,30,0xffff00);
-scene.add( arrowHelper2 );
-const arrowHelper3 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xffff00);
-scene.add( arrowHelper3 );
-const arrowHelper4 = new THREE.ArrowHelper(dir, ori,30,0xff0000);
-scene.add( arrowHelper4 );
-const arrowHelper5 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xff0000);
-scene.add( arrowHelper5 );
-const arrowHelper6 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), ori,30,0xff0000);
-scene.add( arrowHelper6 );
-
 function move_camera_target(){
     if(turn_flag) return;
     const ey = new THREE.Vector3(0,1,0);
@@ -1038,9 +1021,6 @@ function move_camera_target(){
     
     const side = c.clone().normalize().cross(up); // |side| = 1
     const front = c.normalize();
-    arrowHelper4.setDirection(front);
-    arrowHelper5.setDirection(up);
-    arrowHelper6.setDirection(side);
 
     const dvec = new THREE.Vector3(0,0,0);
     if(!user_phone){ //スマホ以外
@@ -1078,8 +1058,8 @@ function move_camera_target(){
         t.add(d);
         p.add(d);
     }
-    if(t.length() > 248){
-        const maxv = t.clone().normalize().multiplyScalar(248);
+    if(t.length() > 398){
+        const maxv = t.clone().normalize().multiplyScalar(398);
         const d = t.clone().sub(maxv);
         t.sub(d);
         p.sub(d);
@@ -1206,7 +1186,7 @@ function render() {
         //矢印の移動
         for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+originposi[i][0], -1.3-i*0.001, 15*z+originposi[i][1]);
     }
-    // console.log(camera.position);
+
     timeCheck();
     if(limited){ //30fps
         render_cnt *= -1;
