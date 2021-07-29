@@ -209,6 +209,8 @@ function create_controls(cam,elem){
 
 stage.appendChild(element);
 
+document.getElementById("container").insertAdjacentHTML("afterbegin","<div id='center' style='background-color: #00000088;width: 10px;height:10px;position: absolute;top:calc(50vh - 5px);left:calc(50vw - 5px); z-index:10;'></div>");
+
 document.getElementById("container").insertAdjacentHTML("afterbegin","<canvas id='stick'></canvas>");
 const stick = document.getElementById("stick");
 const stick_canvas = stick.getContext("2d");
@@ -249,14 +251,18 @@ stick.addEventListener("pointerup", ()=>{
 element.addEventListener("pointerdown", (e) => {
     let up = new Event("pointerup");
     element.dispatchEvent(up);
-    const x = e.clientX - stage.offsetLeft;
-    const y = e.clientY - stage.offsetTop;
+    // const x = e.clientX - stage.offsetLeft;
+    // const y = e.clientY - stage.offsetTop;
+    const x = stage.offsetWidth / 2;
+    const y = stage.offsetHeight / 2;
     pre_click(x,y);
 }, false);
 
 element.addEventListener("pointerup", (e) => {
-    const x = e.clientX - stage.offsetLeft;
-    const y = e.clientY - stage.offsetTop;
+    // const x = e.clientX - stage.offsetLeft;
+    // const y = e.clientY - stage.offsetTop;
+    const x = stage.offsetWidth / 2;
+    const y = stage.offsetHeight / 2;
     click(x,y);
 }, false);
 element.addEventListener('click', function() {
@@ -751,6 +757,7 @@ function pre_click(x,y){
     } else {
         ray.setFromCamera(mouse, camera);
         bump = ray.intersectObjects(scene.children,true); //<=第二引数trueで下位のobjectも
+        console.log(bump)
         if(bump.length > 0) pre_elem_name = bump[0].object.parent.name;
     }
 }
@@ -868,6 +875,7 @@ function move_camera(){ //3dの時のみ実行
         diff1 = (turn_info.theta - Math.PI*0.25 -0.1)*0.012;
         if(turn_info.theta + diff1 < 0) diff1 = 0;
     }
+    camera.lookAt(turn_info.oav)
 
     const diff2 = ease_diff(turn_info.cnt1, 0.001, 0.0057);
     const diff3 = ease_diff(turn_info.cnt2, 1, 0.01);
