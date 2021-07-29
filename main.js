@@ -1,5 +1,6 @@
 import * as THREE from '../three/build/three.module.js';
-import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
+// import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
+import {PointerLockControls} from '../three/examples/jsm/controls/PointerLockControls.js';
 import {OBJLoader} from '../three/examples/jsm/loaders/OBJLoader.js';
 import {MTLLoader} from '../three/examples/jsm/loaders/MTLLoader.js';
 
@@ -44,7 +45,7 @@ search.addEventListener("input", ()=>{
                 move_groups_trigger(i,true);
                 camera_trigger(obj);
                 search.blur();
-            }); 
+            });
         }
     }
 });
@@ -172,27 +173,37 @@ renderer.setClearColor({color: 0x000000});
 const element = renderer.domElement;
 
 
+// const controls = create_controls(camera,element); //control 作成
+//     controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
+//     controls.minPolarAngle = 0.01;
+// const street_controls = create_controls(street_camera,element);
+//     street_controls.enabled = false;
+//
+// function create_controls(cam,elem){
+//     const controls = new OrbitControls(cam, elem);
+//     controls.target.set(0, 0, 0);
+//     controls.maxDistance = 0.01;
+//     controls.minDistance = 0.01;
+//     //各種設定
+//     controls.enableDamping = true;
+//     controls.enableZoom = true; //falseは二本指で暴走
+//     controls.enablePan = false;
+//     controls.enableRotate = true;
+//
+//     // 視点の速さ (timeCheck関数内も変更)
+//     controls.dampingFactor = 0.2;
+//     controls.rotateSpeed = 0.6;
+//
+//     return controls;
+// }
 const controls = create_controls(camera,element); //control 作成
-    controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
-    controls.minPolarAngle = 0.01;
+    // controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
+    // controls.minPolarAngle = 0.01;
 const street_controls = create_controls(street_camera,element);
-    street_controls.enabled = false;
+    // street_controls.enabled = false;
 
 function create_controls(cam,elem){
-    const controls = new OrbitControls(cam, elem);
-    controls.target.set(0, 0, 0);
-    controls.maxDistance = 0.01;
-    controls.minDistance = 0.01;
-    //各種設定
-    controls.enableDamping = true;
-    controls.enableZoom = true; //falseは二本指で暴走
-    controls.enablePan = false;
-    controls.enableRotate = true;
-
-    // 視点の速さ (timeCheck関数内も変更)
-    controls.dampingFactor = 0.2;
-    controls.rotateSpeed = 0.6;
-
+    const controls = new PointerLockControls(cam, elem);
     return controls;
 }
 
@@ -209,7 +220,7 @@ handleResize();
 let stick_flag = false;
 let curv = new THREE.Vector2(0,0);
 stick.addEventListener("pointerdown", (e)=>{
-    controls.enabled = false;
+    // controls.enabled = false;
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     stick_flag = true;
@@ -223,13 +234,13 @@ stick.addEventListener("pointermove", (e)=>{
 });
 
 stick.addEventListener("pointerleave", ()=>{
-    stick_flag = false; 
-    controls.enabled = true;
+    stick_flag = false;
+    // controls.enabled = true;
 });
 
 stick.addEventListener("pointerup", ()=>{
-    stick_flag = false; 
-    controls.enabled = true;
+    stick_flag = false;
+    // controls.enabled = true;
 });
 
 // window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false});//iosスクロール防止用
@@ -248,7 +259,9 @@ element.addEventListener("pointerup", (e) => {
     const y = e.clientY - stage.offsetTop;
     click(x,y);
 }, false);
-
+element.addEventListener('click', function() {
+    controls.lock();
+});
 let key_flag = [false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
@@ -344,14 +357,14 @@ async function load_picture (i,j){
                 });
             } else {
                 resolve();
-            } 
+            }
         });
     }
 
     async function wait(){
         await Promise.all(provec);
         provec = [];
-    } 
+    }
     provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
     await wait();
 }
@@ -368,8 +381,8 @@ window.del = () => {
     document.getElementById("spotviewer").remove();
     document.querySelector(".modep").remove();
     mode = "3d";
-    street_controls.enabled = false;
-    controls.enabled = true;
+    // street_controls.enabled = false;
+    // controls.enabled = true;
     camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
     const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
     camera.position.copy(
@@ -769,9 +782,9 @@ function click(x,y) {
 
             //青ボタンクリック
             if(bump[0].object.name.split("_")[0] == "Button"){
-                
+
                 camera_trigger(bump[0].object);
-                
+
             //校舎クリック obj.name: 0,1,2,...
             } else if(obj.name != undefined){
                 //スマホ救済用 青ボタン判定ゆるく
@@ -799,7 +812,7 @@ function click(x,y) {
             }
         }
     }
-}   
+}
 
 let turn_flag = false;
 let turn_info; //obj
@@ -826,13 +839,13 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     else{
         oiv = camera.position.clone()
             .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / n.clone().dot(m) ));
-    } 
+    }
 
     //移行用
-    controls.enableDamping = false;
-    controls.enableRotate = false;
-    controls.maxDistance = Infinity;
-    controls.minDistance = 0;
+    // controls.enableDamping = false;
+    // controls.enableRotate = false;
+    // controls.maxDistance = Infinity;
+    // controls.minDistance = 0;
     stick.style.display = "none";
     search.style.display = "none";
     searchres.style.display = "none";
@@ -872,12 +885,12 @@ function move_camera(){ //3dの時のみ実行
     } else if(!(diff1 || diff2 || diff3)){
         //ズーム終了時の処理
         turn_flag = false;
-        controls.maxDistance = 0.01;
-        controls.minDistance = 0.01;
-        controls.enableDamping = true;
-        controls.enableRotate = true;
-        street_controls.enabled = true;
-        controls.enabled = false;
+        // controls.maxDistance = 0.01;
+        // controls.minDistance = 0.01;
+        // controls.enableDamping = true;
+        // controls.enableRotate = true;
+        // street_controls.enabled = true;
+        // controls.enabled = false;
         camera_target.copy(turn_info.oav);
         camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
@@ -913,8 +926,8 @@ function move_camera(){ //3dの時のみ実行
 
             <div class="modep" style="display: none"></div>
         `);
-        document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls.enabled = false; });
-        document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls.enabled = true; });
+        // document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls.enabled = false; });
+        // document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls.enabled = true; });
         return;
     }
     //カメラ移動
@@ -923,8 +936,8 @@ function move_camera(){ //3dの時のみ実行
                         .add(onv.multiplyScalar(turn_info.cnt1)));
 
     //target 移動
-    controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
-                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
+    // controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+    //                     .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
 }
 
 //画面変更・位置更新(global)
@@ -1006,28 +1019,36 @@ function move_camera_target(){
     const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
     const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
     const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
-    
+
     const side = c.clone().normalize().cross(up); // |side| = 1
     const front = c.normalize();
 
     const dvec = new THREE.Vector3(0,0,0);
     if(!user_phone){ //スマホ以外
-        if(key_flag[0]) dvec.add(front);
-        if(key_flag[1]) dvec.add(front.clone().negate());
-        if(key_flag[2]) dvec.add(side);
-        if(key_flag[3]) dvec.add(side.clone().negate());
-        if(key_flag[4]) dvec.add(up);
-        if(key_flag[5]) dvec.add(up.clone().negate());
-        dvec.normalize();
+        // if(key_flag[0]) dvec.add(front);
+        // if(key_flag[1]) dvec.add(front.clone().negate());
+        // if(key_flag[2]) dvec.add(side);
+        // if(key_flag[3]) dvec.add(side.clone().negate());
+        // if(key_flag[4]) dvec.add(up);
+        // if(key_flag[5]) dvec.add(up.clone().negate());
+        // dvec.normalize();
+        if ( controls.isLocked === true ) {
+            if (key_flag[0]) controls.moveForward(1);
+            if (key_flag[1]) controls.moveForward(-1);
+            if (key_flag[2]) controls.moveRight(1);
+            if (key_flag[3]) controls.moveRight(-1);
+            if (key_flag[4]) dvec.add(up);
+            if (key_flag[5]) dvec.add(up.clone().negate());
+        }
     } else { //スマホ
         stick_canvas.clearRect(0,0,stick.width,stick.height);
         let ocv;
         const max = stick.width*0.2;
         if(stick_flag){
-            ocv = curv.clone().sub(oriv); 
+            ocv = curv.clone().sub(oriv);
             if(ocv.length() > max) ocv.normalize().multiplyScalar(max);
         } else {
-            ocv = new THREE.Vector2(0,0);    
+            ocv = new THREE.Vector2(0,0);
         }
 
         const dxy = new THREE.Vector2(stick.width*0.25,stick.height*0.25).add(new THREE.Vector2(ocv.y,ocv.x));
@@ -1072,7 +1093,7 @@ function handleResize() {
         hrate = 0.25;
         high = 20;
         // if(mapz != 0.6){
-        //     mapz = 0.6; 
+        //     mapz = 0.6;
         //     if(view_cnt != -1) mini_button(cur);
         // }
     }
@@ -1082,12 +1103,12 @@ function handleResize() {
     // scwidth = stick.width; scheight = stick.height;
 
     // minibutton.style.width = `${height * hrate}px`; minibutton.style.height = `${height * hrate * mapas}px`;
-    
+
     if(mode == "street"){
         document.getElementById("spotviewer").style.height = `${high}%`;
         if(view_cnt == -1){
             document.getElementById("menubar").style.top = `-${high}%`;
-            document.getElementById("spotviewer").style.top = `-${high}%`; 
+            document.getElementById("spotviewer").style.top = `-${high}%`;
         } else {
             document.getElementById("menubar").style.top = `calc(${(spot+1)*high*0.5}% + 4px)`;
             document.getElementById("spotviewer").style.top = `${(spot-1)*high*0.5}%`;
@@ -1139,8 +1160,8 @@ function timeCheck() { //20fps未満は解像度下げる
             if(cur_pixelRatio > 1) renderer.setPixelRatio(1);
             else renderer.setPixelRatio(0.5);
 
-            if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ 遅れ修正
-            else street_controls.rotateSpeed = 0.6*3;
+            // if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ 遅れ修正
+            // else street_controls.rotateSpeed = 0.6*3;
 
             true_cnt = 0; false_cnt = 0;
             limited = true;
@@ -1163,11 +1184,11 @@ function render() {
         move_groups();
         move_camera_target();
 
-        if(!turn_flag) controls.target.copy(camera_target);
-        controls.update(); //ここでupdate
+        // if(!turn_flag) controls.target.copy(camera_target);
+        // controls.update(); //ここでupdate
         renderer.render(scene, camera);
     } else { //street view 中
-        street_controls.update(); //直前でupdate
+        // street_controls.update(); //直前でupdate
         renderer.render(street_scene, street_camera);
         let x = street_camera.position.x, z = street_camera.position.z;
         x *= -1; z *= -1;
