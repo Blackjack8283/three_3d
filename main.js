@@ -99,7 +99,7 @@ scene.add(camera);
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
     mesh.rotation.x = Math.PI * -.5;
-    mesh.position.y -= 0.4;
+    mesh.position.y -= 2;
     //sceneに追加
     scene.add(mesh);
 }
@@ -232,7 +232,8 @@ stick.addEventListener("pointerup", ()=>{
     controls.enabled = true;
 });
 
-// window.addEventListener('touchmove', (e)=>{e.preventDefault();}, {passive: false});//iosスクロール防止用
+// element.addEventListener("pointerdown", ()=>{element.requestPointerLock(); console.log("s");});
+// element.addEventListener("mousemove", (e)=>{console.log(e.movementX, e.movementY);}, false);
 
 //クリック
 element.addEventListener("pointerdown", (e) => {
@@ -297,10 +298,12 @@ let posi_line = [];  //[x,y,z, 枚数, 校舎,階番号]
 let posi = [         //[x,y,z, 枚数,点番号]
     [ [],[],[],[],[] ], //南校舎
     [ [],[],[],[],[] ], //北校舎
-    [ [],[]       ], //東橋
-    [ [],[]       ], //西橋
-    [ [],[],[]    ], //食堂・体育館
+    [ [],[]       ], //東の橋
+    [ [],[]       ], //西の橋
+    [ [],[],[]    ], //食堂
+    [ [],[]       ], //体育館
     [ [],[]       ], //講堂
+    [ []          ]  //地面
 ];
 let posi_line_len, des_len;
 let connection = [];
@@ -655,7 +658,15 @@ const urls = [
     [undefined,"3dMap_east_bridge.obj"], //10
     [undefined,"3dMap_east_ceiling.obj"],
     [undefined,"3dMap_west_bridge.obj"],
-    [undefined,"3dMap_west_ceiling.obj"]
+    [undefined,"3dMap_west_ceiling.obj"],
+    [undefined,"3dMap_cafe_1F.obj"],
+    [undefined,"3dMap_cafe_2F.obj"], //15
+    [undefined,"3dMap_cafe_ceiling.obj"],
+    [undefined,"3dMap_gym.obj"],
+    [undefined,"3dMap_gym_ceiling.obj"],
+    [undefined,"3dMap_audi.obj"],
+    [undefined,"3dMap_audi_ceiling.obj"], //20
+    [undefined,"3dMap_ground.obj"],
 ];
 const groups_len = urls.length;
 
@@ -673,6 +684,14 @@ const groups_len = urls.length;
                 groups[i].part_of = "east_bridge";
             } else if(12 <= i && i <= 13){
                 groups[i].part_of = "west_bridge";
+            } else if(14 <= i && i <= 16){
+                groups[i].part_of = "cafe";
+            } else if(17 <= i && i <= 18){
+                groups[i].part_of = "gym";
+            } else if(19 <= i && i <= 20){
+                groups[i].part_of = "audi";
+            } else if(i == 21){
+                groups[i].part_of = "ground";
             }
 
             groups[i].ori_position = groups[i].position.clone();
@@ -693,6 +712,12 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
         array = posi[2][number-10];
     } else if(number == 12){
         array = posi[3][number-12];
+    } else if(14 <= number && number <= 15){
+        array = posi[4][number-14];
+    } else if(number == 17){
+        array = posi[4][number-17];
+    } else if(number == 19){
+        array = posi[4][number-19];
     } else return;
 
     for(let vec of array){
