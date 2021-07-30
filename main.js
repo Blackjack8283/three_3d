@@ -863,7 +863,8 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     //aを通るy一定の平面とfrontベクトルの交点
     const h = oav.clone().dot(new THREE.Vector3(0,1,0));
     const n = new THREE.Vector3(0,1,0);
-    const m = camera_target.clone().sub(camera.position);
+    // const m = camera_target.clone().sub(camera.position);
+    const m = camera.getWorldDirection(new THREE.Vector3());
     let oiv;
 
     if(n.clone().dot(m) == 0) m.sub(new THREE.Vector3(0,0.001,0)); //並行対策
@@ -872,7 +873,6 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
         oiv = camera.position.clone()
             .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / n.clone().dot(m) ));
     }
-
     //移行用
     // controls.enableDamping = false;
     // controls.enableRotate = false;
@@ -888,6 +888,7 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
 
     turn_flag = true;
     turn_info = {ahv: ahv, ocv: ocv, oav: oav, theta: theta, oiv:oiv, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
+    console.log(turn_info);
 }
 
 function move_camera(){ //3dの時のみ実行
@@ -900,7 +901,6 @@ function move_camera(){ //3dの時のみ実行
         diff1 = (turn_info.theta - Math.PI*0.25 -0.1)*0.012;
         if(turn_info.theta + diff1 < 0) diff1 = 0;
     }
-    camera.lookAt(turn_info.oav)
 
     const diff2 = ease_diff(turn_info.cnt1, 0.001, 0.0057);
     const diff3 = ease_diff(turn_info.cnt2, 1, 0.01);
@@ -971,6 +971,8 @@ function move_camera(){ //3dの時のみ実行
     //target 移動
     // controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
     //                     .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
+    camera.lookAt(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
 }
 
 //画面変更・位置更新(global)
@@ -1066,12 +1068,16 @@ function move_camera_target(){
         // if(key_flag[5]) dvec.add(up.clone().negate());
         // dvec.normalize();
         if ( controls.isLocked === true ) {
-            if (key_flag[0]) controls.moveForward(1);
-            if (key_flag[1]) controls.moveForward(-1);
-            if (key_flag[2]) controls.moveRight(1);
-            if (key_flag[3]) controls.moveRight(-1);
-            if (key_flag[4]) dvec.add(up);
-            if (key_flag[5]) dvec.add(up.clone().negate());
+            console.log(camera.matrix);
+            const _vector = new THREE.Vector3();
+            const right = _vector.setFromMatrixColumn( camera.matrix, 0 ).clone();
+            const forward = _vector.crossVectors( camera.up, _vector );
+            if (key_flag[0]) dvec.add(forward);
+            if (key_flag[1]) dvec.add(forward.negate());
+            if (key_flag[2]) dvec.add(right);
+            if (key_flag[3]) dvec.add(right.negate());
+            if (key_flag[4]) dvec.add(camera.up);
+            if (key_flag[5]) dvec.add(camera.up.clone().negate());
         }
     } else { //スマホ
         stick_canvas.clearRect(0,0,stick.width,stick.height);
