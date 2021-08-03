@@ -12,6 +12,11 @@ container.insertAdjacentHTML("afterbegin",`
     <div id='stage'></div>
 `);
 const stage = document.getElementById("stage");
+
+document.getElementById("container").insertAdjacentHTML("afterbegin",`
+    <div id = 'center'></div>
+`);
+
 let focused = false;
 let search, searchres;
 container.insertAdjacentHTML("afterbegin",`
@@ -63,6 +68,7 @@ window.addEventListener("pointerdown", ()=>{
 
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
+let locked = false; //pointerlockが有効かどうか
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
 const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
 // const user_phone = true;
@@ -209,8 +215,6 @@ function create_controls(cam,elem){
 
 stage.appendChild(element);
 
-document.getElementById("container").insertAdjacentHTML("afterbegin","<div id='center' style='background-color: #00000088;width: 10px;height:10px;position: absolute;top:calc(50vh - 5px);left:calc(50vw - 5px); z-index:10;'></div>");
-
 document.getElementById("container").insertAdjacentHTML("afterbegin","<canvas id='stick'></canvas>");
 const stick = document.getElementById("stick");
 const stick_canvas = stick.getContext("2d");
@@ -266,25 +270,48 @@ element.addEventListener("pointerup", (e) => {
     const y = stage.offsetHeight / 2;
     click(x,y);
 }, false);
-element.addEventListener('click', function() {
+
+alert("push M key to lock pointer");
+function lock_pointer(){
+    locked = true;
     controls.lock();
+    document.getElementById("center").style.display = "block";
+};
+
+function release_pointer(){
+    locked = false;
+    controls.unlock();
+    document.getElementById("center").style.display = "none";
+}
+document.addEventListener("pointerlockchange", ()=>{
+    if(document.pointerLockElement != element && locked) release_pointer();
 });
+
 let key_flag = [false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
     const key = e.key;
-    if(key == "w" || key == "W" || key == "ArrowUp"){
-        key_flag[0] = true;
-    } else if(key == "s" || key == "S" || key == "ArrowDown"){
-        key_flag[1] = true;
-    } else if(key == "d" || key == "D" || key == "ArrowRight"){
-        key_flag[2] = true;
-    } else if(key == "a" || key == "A" || key == "ArrowLeft"){
-        key_flag[3] = true;
-    } else if(key == " "){
-        key_flag[4] = true;
-    } else if(key == "Shift"){
-        key_flag[5] = true;
+    if(mode == "3d"){
+        if(key == "w" || key == "W" || key == "ArrowUp"){
+            key_flag[0] = true;
+        } else if(key == "s" || key == "S" || key == "ArrowDown"){
+            key_flag[1] = true;
+        } else if(key == "d" || key == "D" || key == "ArrowRight"){
+            key_flag[2] = true;
+        } else if(key == "a" || key == "A" || key == "ArrowLeft"){
+            key_flag[3] = true;
+        } else if(key == " "){
+            key_flag[4] = true;
+        } else if(key == "Shift"){
+            key_flag[5] = true;
+        } else if(key == "m" || key == "M"){
+            if(locked) release_pointer();
+            else lock_pointer();
+        }
+    } else {
+        if(key == "d" || key == "D"){
+            del();
+        }
     }
 });
 
@@ -305,6 +332,10 @@ window.addEventListener("keyup",(e)=>{
     } else if(key == "Escape"){
         key_flag = [false,false,false,false,false,false];
     }
+});
+
+window.addEventListener("blur",()=>{
+    key_flag = [false,false,false,false,false,false];
 });
 
 window.addEventListener("resize", handleResize, false);
@@ -392,12 +423,22 @@ window.del = () => {
     mode = "3d";
     // street_controls.enabled = false;
     // controls.enabled = true;
-    camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
-    const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
-    camera.position.copy(
-        camera_target.clone()
-        .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
-    );
+    if(!locked){
+        camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+        const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
+        camera.position.copy(
+            camera_target.clone()
+            .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
+        );
+    } else {
+        camera.position.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+        const _vector = new THREE.Vector3();
+        _vector.setFromMatrixColumn( street_camera.matrix, 0 );
+        const forward = _vector.crossVectors( street_camera.up, _vector );
+        camera.lookAt(
+            camera.position.clone().add(new THREE.Vector3(-forward.z,0,forward.x))
+        );
+    }
     move_groups_trigger(cur,true);
     stick.style.display = "block";
     search.style.display = "block";
@@ -782,7 +823,6 @@ function pre_click(x,y){
     } else {
         ray.setFromCamera(mouse, camera);
         bump = ray.intersectObjects(scene.children,true); //<=第二引数trueで下位のobjectも
-        console.log(bump)
         if(bump.length > 0) pre_elem_name = bump[0].object.parent.name;
     }
 }
@@ -971,7 +1011,7 @@ function move_camera(){ //3dの時のみ実行
     //target 移動
     // controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
     //                     .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
-    camera.lookAt(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+    if(locked) camera.lookAt(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
                         .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
 }
 
@@ -1048,16 +1088,6 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
 
 function move_camera_target(){
     if(turn_flag) return;
-    const ey = new THREE.Vector3(0,1,0);
-    const c = camera_target.clone().sub(camera.position);
-    const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
-    const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
-    const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
-    const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
-
-    const side = c.clone().normalize().cross(up); // |side| = 1
-    const front = c.normalize();
-
     const dvec = new THREE.Vector3(0,0,0);
     if(!user_phone){ //スマホ以外
         // if(key_flag[0]) dvec.add(front);
@@ -1067,8 +1097,7 @@ function move_camera_target(){
         // if(key_flag[4]) dvec.add(up);
         // if(key_flag[5]) dvec.add(up.clone().negate());
         // dvec.normalize();
-        if ( controls.isLocked === true ) {
-            console.log(camera.matrix);
+        // if ( controls.isLocked === true ) {
             const _vector = new THREE.Vector3();
             const right = _vector.setFromMatrixColumn( camera.matrix, 0 ).clone();
             const forward = _vector.crossVectors( camera.up, _vector );
@@ -1078,8 +1107,18 @@ function move_camera_target(){
             if (key_flag[3]) dvec.add(right.negate());
             if (key_flag[4]) dvec.add(camera.up);
             if (key_flag[5]) dvec.add(camera.up.clone().negate());
-        }
+        // }
     } else { //スマホ
+        // const ey = new THREE.Vector3(0,1,0);
+        const c = camera_target.clone().sub(camera.position);
+        const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
+        const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
+        const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
+        const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
+
+        const side = c.clone().normalize().cross(up); // |side| = 1
+        const front = c.normalize();
+
         stick_canvas.clearRect(0,0,stick.width,stick.height);
         let ocv;
         const max = stick.width*0.2;
