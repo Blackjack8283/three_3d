@@ -1,5 +1,5 @@
 import * as THREE from '../three/build/three.module.js';
-// import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
+import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
 import {PointerLockControls} from '../three/examples/jsm/controls/PointerLockControls.js';
 import {OBJLoader} from '../three/examples/jsm/loaders/OBJLoader.js';
 import {MTLLoader} from '../three/examples/jsm/loaders/MTLLoader.js';
@@ -178,40 +178,37 @@ renderer.setClearColor({color: 0x000000});
 // renderer.shadowMap.enabled = true;
 const element = renderer.domElement;
 
-
-// const controls = create_controls(camera,element); //control 作成
-//     controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
-//     controls.minPolarAngle = 0.01;
-// const street_controls = create_controls(street_camera,element);
-//     street_controls.enabled = false;
-//
-// function create_controls(cam,elem){
-//     const controls = new OrbitControls(cam, elem);
-//     controls.target.set(0, 0, 0);
-//     controls.maxDistance = 0.01;
-//     controls.minDistance = 0.01;
-//     //各種設定
-//     controls.enableDamping = true;
-//     controls.enableZoom = true; //falseは二本指で暴走
-//     controls.enablePan = false;
-//     controls.enableRotate = true;
-//
-//     // 視点の速さ (timeCheck関数内も変更)
-//     controls.dampingFactor = 0.2;
-//     controls.rotateSpeed = 0.6;
-//
-//     return controls;
-// }
-const controls = create_controls(camera,element); //control 作成
-    // controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
-    // controls.minPolarAngle = 0.01;
-const street_controls = create_controls(street_camera,element);
-    // street_controls.enabled = false;
-
 function create_controls(cam,elem){
-    const controls = new PointerLockControls(cam, elem);
+    const controls = new OrbitControls(cam, elem);
+    controls.target.set(0, 0, 0);
+    controls.maxDistance = 0.01;
+    controls.minDistance = 0.01;
+    //各種設定
+    controls.enableDamping = true;
+    controls.enableZoom = true; //falseは二本指で暴走
+    controls.enablePan = false;
+    controls.enableRotate = true;
+
+    // 視点の速さ (timeCheck関数内も変更)
+    controls.dampingFactor = 0.2;
+    controls.rotateSpeed = 0.6;
+
     return controls;
 }
+const controls_orbit = create_controls(camera,element); //control 作成
+    controls_orbit.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
+    controls_orbit.minPolarAngle = 0.01;
+
+const controls_pointer = new PointerLockControls(camera, element);
+
+let controls = controls_orbit;
+
+const street_controls_orbit = create_controls(street_camera,element);
+    street_controls_orbit.enabled = false;
+
+const street_controls_pointer =  new PointerLockControls(street_camera, element);
+
+let street_controls = street_controls_orbit;
 
 stage.appendChild(element);
 
@@ -226,7 +223,7 @@ handleResize();
 let stick_flag = false;
 let curv = new THREE.Vector2(0,0);
 stick.addEventListener("pointerdown", (e)=>{
-    // controls.enabled = false;
+    controls_orbit.enabled = false;
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     stick_flag = true;
@@ -241,46 +238,62 @@ stick.addEventListener("pointermove", (e)=>{
 
 stick.addEventListener("pointerleave", ()=>{
     stick_flag = false;
-    // controls.enabled = true;
+    controls_orbit.enabled = true;
 });
 
 stick.addEventListener("pointerup", ()=>{
     stick_flag = false;
-    // controls.enabled = true;
+    controls_orbit.enabled = true;
 });
-
-// element.addEventListener("pointerdown", ()=>{element.requestPointerLock(); console.log("s");});
-// element.addEventListener("mousemove", (e)=>{console.log(e.movementX, e.movementY);}, false);
 
 //クリック
 element.addEventListener("pointerdown", (e) => {
-    let up = new Event("pointerup");
-    element.dispatchEvent(up);
-    // const x = e.clientX - stage.offsetLeft;
-    // const y = e.clientY - stage.offsetTop;
-    const x = stage.offsetWidth / 2;
-    const y = stage.offsetHeight / 2;
+    let x,y;
+    if(!locked){
+        x = e.clientX - stage.offsetLeft;
+        y = e.clientY - stage.offsetTop;
+    } else {
+        x = stage.offsetWidth / 2;
+        y = stage.offsetHeight / 2;
+    }
     pre_click(x,y);
 }, false);
 
 element.addEventListener("pointerup", (e) => {
-    // const x = e.clientX - stage.offsetLeft;
-    // const y = e.clientY - stage.offsetTop;
-    const x = stage.offsetWidth / 2;
-    const y = stage.offsetHeight / 2;
+    let x,y;
+    if(!locked){
+        x = e.clientX - stage.offsetLeft;
+        y = e.clientY - stage.offsetTop;
+    } else {
+        x = stage.offsetWidth / 2;
+        y = stage.offsetHeight / 2;
+    }
     click(x,y);
 }, false);
 
-alert("push M key to lock pointer");
+console.log("push M key to lock pointer");
 function lock_pointer(){
+    if(turn_flag) return;
     locked = true;
+    controls = controls_pointer;
+    street_controls = street_controls_pointer;
+    controls_orbit.enabled = false;
+    street_controls_orbit.enabled = false;
     controls.lock();
+    if(mode == "3d") camera_target = camera.position;
     document.getElementById("center").style.display = "block";
 };
 
 function release_pointer(){
+    if(turn_flag) return;
     locked = false;
     controls.unlock();
+    if(mode == "3d") camera_target = camera.position.clone().add(controls.getDirection(new THREE.Vector3()).multiplyScalar(0.01));
+    else street_camera.position.copy(street_controls.getDirection(new THREE.Vector3()).multiplyScalar(-0.01));
+    controls = controls_orbit;
+    street_controls = street_controls_orbit;
+    controls_orbit.enabled = true;
+    street_controls_orbit.enabled = true;
     document.getElementById("center").style.display = "none";
 }
 document.addEventListener("pointerlockchange", ()=>{
@@ -291,6 +304,10 @@ let key_flag = [false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
     const key = e.key;
+    if(key == "m" || key == "M"){
+        if(locked) release_pointer();
+        else lock_pointer();
+    }
     if(mode == "3d"){
         if(key == "w" || key == "W" || key == "ArrowUp"){
             key_flag[0] = true;
@@ -304,9 +321,6 @@ window.addEventListener("keydown",(e)=>{
             key_flag[4] = true;
         } else if(key == "Shift"){
             key_flag[5] = true;
-        } else if(key == "m" || key == "M"){
-            if(locked) release_pointer();
-            else lock_pointer();
         }
     } else {
         if(key == "d" || key == "D"){
@@ -421,10 +435,10 @@ window.del = () => {
     document.getElementById("spotviewer").remove();
     document.querySelector(".modep").remove();
     mode = "3d";
-    // street_controls.enabled = false;
-    // controls.enabled = true;
+    camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
     if(!locked){
-        camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+        street_controls_orbit.enabled = false;
+        controls_orbit.enabled = true;
         const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
         camera.position.copy(
             camera_target.clone()
@@ -900,11 +914,10 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     if(oav.y > ocv.y) theta *= -1;
     const to = Number(button.name.split("_")[1]);
 
-    //aを通るy一定の平面とfrontベクトルの交点
+    //aを通るy一定の平面とfrontベクトルの交点(oiv)
     const h = oav.clone().dot(new THREE.Vector3(0,1,0));
     const n = new THREE.Vector3(0,1,0);
-    // const m = camera_target.clone().sub(camera.position);
-    const m = camera.getWorldDirection(new THREE.Vector3());
+    const m = locked ? camera.getWorldDirection(new THREE.Vector3()) : camera_target.clone().sub(camera.position);
     let oiv;
 
     if(n.clone().dot(m) == 0) m.sub(new THREE.Vector3(0,0.001,0)); //並行対策
@@ -913,11 +926,13 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
         oiv = camera.position.clone()
             .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / n.clone().dot(m) ));
     }
-    //移行用
-    // controls.enableDamping = false;
-    // controls.enableRotate = false;
-    // controls.maxDistance = Infinity;
-    // controls.minDistance = 0;
+    //移行用    
+    if(!locked){
+        controls.enableDamping = false;
+        controls.enableRotate = false;
+        controls.maxDistance = Infinity;
+        controls.minDistance = 0;
+    }
     stick.style.display = "none";
     search.style.display = "none";
     searchres.style.display = "none";
@@ -958,17 +973,23 @@ function move_camera(){ //3dの時のみ実行
     } else if(!(diff1 || diff2 || diff3)){
         //ズーム終了時の処理
         turn_flag = false;
-        // controls.maxDistance = 0.01;
-        // controls.minDistance = 0.01;
-        // controls.enableDamping = true;
-        // controls.enableRotate = true;
-        // street_controls.enabled = true;
-        // controls.enabled = false;
-        camera_target.copy(turn_info.oav);
-        camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
-        street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
+        if(!locked){
+            controls.maxDistance = 0.01;
+            controls.minDistance = 0.01;
+            controls.enableDamping = true;
+            controls.enableRotate = true;
+            street_controls_orbit.enabled = true;
+            controls_orbit.enabled = false;
+            // camera_target.copy(turn_info.oav);
+            // camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
+            street_controls.target.set(0,0,0);
+            street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
+        } else {
+            street_camera.position.set(0,0,0);
+            street_camera.lookAt(new THREE.Vector3(-0.01*Math.cos(theta),0,0.01*Math.sin(theta)));
+        }
 
         street_move(turn_info.to);
         //UI挿入
@@ -999,8 +1020,8 @@ function move_camera(){ //3dの時のみ実行
 
             <div class="modep" style="display: none"></div>
         `);
-        // document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls.enabled = false; });
-        // document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls.enabled = true; });
+        document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls_orbit.enabled = false; });
+        document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls_orbit.enabled = true; });
         return;
     }
     //カメラ移動
@@ -1009,9 +1030,9 @@ function move_camera(){ //3dの時のみ実行
                         .add(onv.multiplyScalar(turn_info.cnt1)));
 
     //target 移動
-    // controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
-    //                     .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
-    if(locked) camera.lookAt(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+    if(!locked)controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
+    else camera.lookAt(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)
                         .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
 }
 
@@ -1109,6 +1130,7 @@ function move_camera_target(){
             if (key_flag[5]) dvec.add(camera.up.clone().negate());
         // }
     } else { //スマホ
+        //計算を改良すべし
         // const ey = new THREE.Vector3(0,1,0);
         const c = camera_target.clone().sub(camera.position);
         const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
@@ -1261,17 +1283,25 @@ function render() {
         move_camera();
         move_groups();
         move_camera_target();
-
-        // if(!turn_flag) controls.target.copy(camera_target);
-        // controls.update(); //ここでupdate
+        if(!locked){
+            if(!turn_flag) controls.target.copy(camera_target);
+            controls.update(); //ここでupdate
+        }
         renderer.render(scene, camera);
     } else { //street view 中
-        // street_controls.update(); //直前でupdate
+        if(!locked) street_controls.update(); //直前でupdate
         renderer.render(street_scene, street_camera);
-        let x = street_camera.position.x, z = street_camera.position.z;
-        x *= -1; z *= -1;
+        let x,z;
+        if(!locked){
+            x = -street_camera.position.x
+            z = -street_camera.position.z;
+        } else {
+            const vec = street_controls.getDirection(new THREE.Vector3()).multiplyScalar(0.01);
+            x = vec.x;
+            z = vec.z;
+        }
         //矢印の移動
-        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+originposi[i][0], -1.3-i*0.001, 15*z+originposi[i][1]);
+        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(150*x+originposi[i][0], -1.3-i*0.001, 150*z+originposi[i][1]);
     }
 
     timeCheck();
