@@ -1,5 +1,6 @@
 import * as THREE from '../three/build/three.module.js';
 import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
+import {PointerLockControls} from '../three/examples/jsm/controls/PointerLockControls.js';
 import {OBJLoader} from '../three/examples/jsm/loaders/OBJLoader.js';
 import {MTLLoader} from '../three/examples/jsm/loaders/MTLLoader.js';
 
@@ -11,6 +12,11 @@ container.insertAdjacentHTML("afterbegin",`
     <div id='stage'></div>
 `);
 const stage = document.getElementById("stage");
+
+document.getElementById("container").insertAdjacentHTML("afterbegin",`
+    <div id = 'center'></div>
+`);
+
 let focused = false;
 let search, searchres;
 container.insertAdjacentHTML("afterbegin",`
@@ -44,7 +50,7 @@ search.addEventListener("input", ()=>{
                 move_groups_trigger(i,true);
                 camera_trigger(obj);
                 search.blur();
-            }); 
+            });
         }
     }
 });
@@ -62,6 +68,7 @@ window.addEventListener("pointerdown", ()=>{
 
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
+let locked = false; //pointerlockが有効かどうか
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
 const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
 // const user_phone = true;
@@ -171,13 +178,6 @@ renderer.setClearColor({color: 0x000000});
 // renderer.shadowMap.enabled = true;
 const element = renderer.domElement;
 
-
-const controls = create_controls(camera,element); //control 作成
-    controls.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
-    controls.minPolarAngle = 0.01;
-const street_controls = create_controls(street_camera,element);
-    street_controls.enabled = false;
-
 function create_controls(cam,elem){
     const controls = new OrbitControls(cam, elem);
     controls.target.set(0, 0, 0);
@@ -195,6 +195,20 @@ function create_controls(cam,elem){
 
     return controls;
 }
+const controls_orbit = create_controls(camera,element); //control 作成
+    controls_orbit.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
+    controls_orbit.minPolarAngle = 0.01;
+
+const controls_pointer = new PointerLockControls(camera, element);
+
+let controls = controls_orbit;
+
+const street_controls_orbit = create_controls(street_camera,element);
+    street_controls_orbit.enabled = false;
+
+const street_controls_pointer =  new PointerLockControls(street_camera, element);
+
+let street_controls = street_controls_orbit;
 
 stage.appendChild(element);
 
@@ -209,7 +223,7 @@ handleResize();
 let stick_flag = false;
 let curv = new THREE.Vector2(0,0);
 stick.addEventListener("pointerdown", (e)=>{
-    controls.enabled = false;
+    controls_orbit.enabled = false;
     const x = e.clientX - stage.offsetLeft;
     const y = e.clientY - stage.offsetTop;
     stick_flag = true;
@@ -223,49 +237,95 @@ stick.addEventListener("pointermove", (e)=>{
 });
 
 stick.addEventListener("pointerleave", ()=>{
-    stick_flag = false; 
-    controls.enabled = true;
+    stick_flag = false;
+    controls_orbit.enabled = true;
 });
 
 stick.addEventListener("pointerup", ()=>{
-    stick_flag = false; 
-    controls.enabled = true;
+    stick_flag = false;
+    controls_orbit.enabled = true;
 });
-
-// element.addEventListener("pointerdown", ()=>{element.requestPointerLock(); console.log("s");});
-// element.addEventListener("mousemove", (e)=>{console.log(e.movementX, e.movementY);}, false);
 
 //クリック
 element.addEventListener("pointerdown", (e) => {
-    let up = new Event("pointerup");
-    element.dispatchEvent(up);
-    const x = e.clientX - stage.offsetLeft;
-    const y = e.clientY - stage.offsetTop;
+    let x,y;
+    if(!locked){
+        x = e.clientX - stage.offsetLeft;
+        y = e.clientY - stage.offsetTop;
+    } else {
+        x = stage.offsetWidth / 2;
+        y = stage.offsetHeight / 2;
+    }
     pre_click(x,y);
 }, false);
 
 element.addEventListener("pointerup", (e) => {
-    const x = e.clientX - stage.offsetLeft;
-    const y = e.clientY - stage.offsetTop;
+    let x,y;
+    if(!locked){
+        x = e.clientX - stage.offsetLeft;
+        y = e.clientY - stage.offsetTop;
+    } else {
+        x = stage.offsetWidth / 2;
+        y = stage.offsetHeight / 2;
+    }
     click(x,y);
 }, false);
+
+console.log("push M key to lock pointer");
+function lock_pointer(){
+    if(turn_flag) return;
+    locked = true;
+    controls = controls_pointer;
+    street_controls = street_controls_pointer;
+    controls_orbit.enabled = false;
+    street_controls_orbit.enabled = false;
+    controls.lock();
+    if(mode == "3d") camera_target = camera.position;
+    document.getElementById("center").style.display = "block";
+};
+
+function release_pointer(){
+    if(turn_flag) return;
+    locked = false;
+    controls.unlock();
+    if(mode == "3d") camera_target = camera.position.clone().add(controls.getDirection(new THREE.Vector3()).multiplyScalar(0.01));
+    else street_camera.position.copy(street_controls.getDirection(new THREE.Vector3()).multiplyScalar(-0.01));
+    controls = controls_orbit;
+    street_controls = street_controls_orbit;
+    controls_orbit.enabled = true;
+    street_controls_orbit.enabled = true;
+    document.getElementById("center").style.display = "none";
+}
+document.addEventListener("pointerlockchange", ()=>{
+    if(document.pointerLockElement != element && locked) release_pointer();
+});
 
 let key_flag = [false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
     const key = e.key;
-    if(key == "w" || key == "W" || key == "ArrowUp"){
-        key_flag[0] = true;
-    } else if(key == "s" || key == "S" || key == "ArrowDown"){
-        key_flag[1] = true;
-    } else if(key == "d" || key == "D" || key == "ArrowRight"){
-        key_flag[2] = true;
-    } else if(key == "a" || key == "A" || key == "ArrowLeft"){
-        key_flag[3] = true;
-    } else if(key == " "){
-        key_flag[4] = true;
-    } else if(key == "Shift"){
-        key_flag[5] = true;
+    if(key == "m" || key == "M"){
+        if(locked) release_pointer();
+        else lock_pointer();
+    }
+    if(mode == "3d"){
+        if(key == "w" || key == "W" || key == "ArrowUp"){
+            key_flag[0] = true;
+        } else if(key == "s" || key == "S" || key == "ArrowDown"){
+            key_flag[1] = true;
+        } else if(key == "d" || key == "D" || key == "ArrowRight"){
+            key_flag[2] = true;
+        } else if(key == "a" || key == "A" || key == "ArrowLeft"){
+            key_flag[3] = true;
+        } else if(key == " "){
+            key_flag[4] = true;
+        } else if(key == "Shift"){
+            key_flag[5] = true;
+        }
+    } else {
+        if(key == "d" || key == "D"){
+            del();
+        }
     }
 });
 
@@ -286,6 +346,10 @@ window.addEventListener("keyup",(e)=>{
     } else if(key == "Escape"){
         key_flag = [false,false,false,false,false,false];
     }
+});
+
+window.addEventListener("blur",()=>{
+    key_flag = [false,false,false,false,false,false];
 });
 
 window.addEventListener("resize", handleResize, false);
@@ -347,14 +411,14 @@ async function load_picture (i,j){
                 });
             } else {
                 resolve();
-            } 
+            }
         });
     }
 
     async function wait(){
         await Promise.all(provec);
         provec = [];
-    } 
+    }
     provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
     await wait();
 }
@@ -371,14 +435,24 @@ window.del = () => {
     document.getElementById("spotviewer").remove();
     document.querySelector(".modep").remove();
     mode = "3d";
-    street_controls.enabled = false;
-    controls.enabled = true;
     camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
-    const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
-    camera.position.copy(
-        camera_target.clone()
-        .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
-    );
+    if(!locked){
+        street_controls_orbit.enabled = false;
+        controls_orbit.enabled = true;
+        const theta = posi_to_theta(street_camera.position.z,street_camera.position.x);
+        camera.position.copy(
+            camera_target.clone()
+            .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
+        );
+    } else {
+        camera.position.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+        const _vector = new THREE.Vector3();
+        _vector.setFromMatrixColumn( street_camera.matrix, 0 );
+        const forward = _vector.crossVectors( street_camera.up, _vector );
+        camera.lookAt(
+            camera.position.clone().add(new THREE.Vector3(-forward.z,0,forward.x))
+        );
+    }
     move_groups_trigger(cur,true);
     stick.style.display = "block";
     search.style.display = "block";
@@ -794,9 +868,9 @@ function click(x,y) {
 
             //青ボタンクリック
             if(bump[0].object.name.split("_")[0] == "Button"){
-                
+
                 camera_trigger(bump[0].object);
-                
+
             //校舎クリック obj.name: 0,1,2,...
             } else if(obj.name != undefined){
                 //スマホ救済用 青ボタン判定ゆるく
@@ -824,7 +898,7 @@ function click(x,y) {
             }
         }
     }
-}   
+}
 
 let turn_flag = false;
 let turn_info; //obj
@@ -840,10 +914,10 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     if(oav.y > ocv.y) theta *= -1;
     const to = Number(button.name.split("_")[1]);
 
-    //aを通るy一定の平面とfrontベクトルの交点
+    //aを通るy一定の平面とfrontベクトルの交点(oiv)
     const h = oav.clone().dot(new THREE.Vector3(0,1,0));
     const n = new THREE.Vector3(0,1,0);
-    const m = camera_target.clone().sub(camera.position);
+    const m = locked ? camera.getWorldDirection(new THREE.Vector3()) : camera_target.clone().sub(camera.position);
     let oiv;
 
     if(n.clone().dot(m) == 0) m.sub(new THREE.Vector3(0,0.001,0)); //並行対策
@@ -851,13 +925,14 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     else{
         oiv = camera.position.clone()
             .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / n.clone().dot(m) ));
-    } 
-
-    //移行用
-    controls.enableDamping = false;
-    controls.enableRotate = false;
-    controls.maxDistance = Infinity;
-    controls.minDistance = 0;
+    }
+    //移行用    
+    if(!locked){
+        controls.enableDamping = false;
+        controls.enableRotate = false;
+        controls.maxDistance = Infinity;
+        controls.minDistance = 0;
+    }
     stick.style.display = "none";
     search.style.display = "none";
     searchres.style.display = "none";
@@ -868,6 +943,7 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
 
     turn_flag = true;
     turn_info = {ahv: ahv, ocv: ocv, oav: oav, theta: theta, oiv:oiv, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
+    console.log(turn_info);
 }
 
 function move_camera(){ //3dの時のみ実行
@@ -897,17 +973,23 @@ function move_camera(){ //3dの時のみ実行
     } else if(!(diff1 || diff2 || diff3)){
         //ズーム終了時の処理
         turn_flag = false;
-        controls.maxDistance = 0.01;
-        controls.minDistance = 0.01;
-        controls.enableDamping = true;
-        controls.enableRotate = true;
-        street_controls.enabled = true;
-        controls.enabled = false;
-        camera_target.copy(turn_info.oav);
-        camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
-        street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
+        if(!locked){
+            controls.maxDistance = 0.01;
+            controls.minDistance = 0.01;
+            controls.enableDamping = true;
+            controls.enableRotate = true;
+            street_controls_orbit.enabled = true;
+            controls_orbit.enabled = false;
+            // camera_target.copy(turn_info.oav);
+            // camera.position.copy(turn_info.oav.clone().add(turn_info.ahv.normalize().multiplyScalar(0.01)));
+            street_controls.target.set(0,0,0);
+            street_camera.position.set(0.01*Math.cos(theta),0,-0.01*Math.sin(theta));
+        } else {
+            street_camera.position.set(0,0,0);
+            street_camera.lookAt(new THREE.Vector3(-0.01*Math.cos(theta),0,0.01*Math.sin(theta)));
+        }
 
         street_move(turn_info.to);
         //UI挿入
@@ -938,8 +1020,8 @@ function move_camera(){ //3dの時のみ実行
 
             <div class="modep" style="display: none"></div>
         `);
-        document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls.enabled = false; });
-        document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls.enabled = true; });
+        document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls_orbit.enabled = false; });
+        document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls_orbit.enabled = true; });
         return;
     }
     //カメラ移動
@@ -948,7 +1030,9 @@ function move_camera(){ //3dの時のみ実行
                         .add(onv.multiplyScalar(turn_info.cnt1)));
 
     //target 移動
-    controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+    if(!locked)controls.target.copy(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)    //線分IAをcnt2:(1-cnt2)で内分
+                        .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
+    else camera.lookAt(turn_info.oav.clone().multiplyScalar(turn_info.cnt2)
                         .add(turn_info.oiv.clone().multiplyScalar(1-turn_info.cnt2)));
 }
 
@@ -1025,34 +1109,46 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
 
 function move_camera_target(){
     if(turn_flag) return;
-    const ey = new THREE.Vector3(0,1,0);
-    const c = camera_target.clone().sub(camera.position);
-    const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
-    const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
-    const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
-    const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
-    
-    const side = c.clone().normalize().cross(up); // |side| = 1
-    const front = c.normalize();
-
     const dvec = new THREE.Vector3(0,0,0);
     if(!user_phone){ //スマホ以外
-        if(key_flag[0]) dvec.add(front);
-        if(key_flag[1]) dvec.add(front.clone().negate());
-        if(key_flag[2]) dvec.add(side);
-        if(key_flag[3]) dvec.add(side.clone().negate());
-        if(key_flag[4]) dvec.add(up);
-        if(key_flag[5]) dvec.add(up.clone().negate());
-        dvec.normalize();
+        // if(key_flag[0]) dvec.add(front);
+        // if(key_flag[1]) dvec.add(front.clone().negate());
+        // if(key_flag[2]) dvec.add(side);
+        // if(key_flag[3]) dvec.add(side.clone().negate());
+        // if(key_flag[4]) dvec.add(up);
+        // if(key_flag[5]) dvec.add(up.clone().negate());
+        // dvec.normalize();
+        // if ( controls.isLocked === true ) {
+            const _vector = new THREE.Vector3();
+            const right = _vector.setFromMatrixColumn( camera.matrix, 0 ).clone();
+            const forward = _vector.crossVectors( camera.up, _vector );
+            if (key_flag[0]) dvec.add(forward);
+            if (key_flag[1]) dvec.add(forward.negate());
+            if (key_flag[2]) dvec.add(right);
+            if (key_flag[3]) dvec.add(right.negate());
+            if (key_flag[4]) dvec.add(camera.up);
+            if (key_flag[5]) dvec.add(camera.up.clone().negate());
+        // }
     } else { //スマホ
+        //計算を改良すべし
+        // const ey = new THREE.Vector3(0,1,0);
+        const c = camera_target.clone().sub(camera.position);
+        const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
+        const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
+        const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
+        const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
+
+        const side = c.clone().normalize().cross(up); // |side| = 1
+        const front = c.normalize();
+
         stick_canvas.clearRect(0,0,stick.width,stick.height);
         let ocv;
         const max = stick.width*0.2;
         if(stick_flag){
-            ocv = curv.clone().sub(oriv); 
+            ocv = curv.clone().sub(oriv);
             if(ocv.length() > max) ocv.normalize().multiplyScalar(max);
         } else {
-            ocv = new THREE.Vector2(0,0);    
+            ocv = new THREE.Vector2(0,0);
         }
 
         const dxy = new THREE.Vector2(stick.width*0.25,stick.height*0.25).add(new THREE.Vector2(ocv.y,ocv.x));
@@ -1097,7 +1193,7 @@ function handleResize() {
         hrate = 0.25;
         high = 20;
         // if(mapz != 0.6){
-        //     mapz = 0.6; 
+        //     mapz = 0.6;
         //     if(view_cnt != -1) mini_button(cur);
         // }
     }
@@ -1107,12 +1203,12 @@ function handleResize() {
     // scwidth = stick.width; scheight = stick.height;
 
     // minibutton.style.width = `${height * hrate}px`; minibutton.style.height = `${height * hrate * mapas}px`;
-    
+
     if(mode == "street"){
         document.getElementById("spotviewer").style.height = `${high}%`;
         if(view_cnt == -1){
             document.getElementById("menubar").style.top = `-${high}%`;
-            document.getElementById("spotviewer").style.top = `-${high}%`; 
+            document.getElementById("spotviewer").style.top = `-${high}%`;
         } else {
             document.getElementById("menubar").style.top = `calc(${(spot+1)*high*0.5}% + 4px)`;
             document.getElementById("spotviewer").style.top = `${(spot-1)*high*0.5}%`;
@@ -1164,8 +1260,8 @@ function timeCheck() { //20fps未満は解像度下げる
             if(cur_pixelRatio > 1) renderer.setPixelRatio(1);
             else renderer.setPixelRatio(0.5);
 
-            if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ 遅れ修正
-            else street_controls.rotateSpeed = 0.6*3;
+            // if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ 遅れ修正
+            // else street_controls.rotateSpeed = 0.6*3;
 
             true_cnt = 0; false_cnt = 0;
             limited = true;
@@ -1187,17 +1283,25 @@ function render() {
         move_camera();
         move_groups();
         move_camera_target();
-
-        if(!turn_flag) controls.target.copy(camera_target);
-        controls.update(); //ここでupdate
+        if(!locked){
+            if(!turn_flag) controls.target.copy(camera_target);
+            controls.update(); //ここでupdate
+        }
         renderer.render(scene, camera);
     } else { //street view 中
-        street_controls.update(); //直前でupdate
+        if(!locked) street_controls.update(); //直前でupdate
         renderer.render(street_scene, street_camera);
-        let x = street_camera.position.x, z = street_camera.position.z;
-        x *= -1; z *= -1;
+        let x,z;
+        if(!locked){
+            x = -street_camera.position.x
+            z = -street_camera.position.z;
+        } else {
+            const vec = street_controls.getDirection(new THREE.Vector3()).multiplyScalar(0.01);
+            x = vec.x;
+            z = vec.z;
+        }
         //矢印の移動
-        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(15*x+originposi[i][0], -1.3-i*0.001, 15*z+originposi[i][1]);
+        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(150*x+originposi[i][0], -1.3-i*0.001, 150*z+originposi[i][1]);
     }
 
     timeCheck();
