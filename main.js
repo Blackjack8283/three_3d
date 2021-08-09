@@ -18,15 +18,14 @@ document.getElementById("container").insertAdjacentHTML("afterbegin",`
 `);
 
 let focused = false;
-let search, searchres;
 container.insertAdjacentHTML("afterbegin",`
     <div id="searchdiv">
         <input type="text" id="search" placeholder="検索">
         <div id="searchres"></div>
     </div>
 `);
-search = document.getElementById("search");
-searchres = document.getElementById("searchres");
+let search = document.getElementById("search");
+let searchres = document.getElementById("searchres");
 search.addEventListener("input", ()=>{
     let val = search.value;
     searchres.style.display = "none";
@@ -61,6 +60,12 @@ search.addEventListener("focus", ()=>{
 search.addEventListener("pointerdown", (e)=>{e.stopPropagation();});
 search.addEventListener("blur", ()=>{ focused = false; });
 searchres.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
+search.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+}, true);
+searchres.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+}, true);
 window.addEventListener("pointerdown", ()=>{
     search.blur();
     searchres.style.display = "none";
@@ -246,6 +251,14 @@ stick.addEventListener("pointerup", ()=>{
     controls_orbit.enabled = true;
 });
 
+stick.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+}, true);
+
+element.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+}, true);
+
 //クリック
 element.addEventListener("pointerdown", (e) => {
     let x,y;
@@ -271,7 +284,7 @@ element.addEventListener("pointerup", (e) => {
     click(x,y);
 }, false);
 
-console.log("push M key to lock pointer");
+console.log("push M key to lock your pointer");
 function lock_pointer(){
     if(turn_flag) return;
     locked = true;
@@ -644,28 +657,27 @@ window.change_mode = (async () =>{
 
 //矢印読み込み
 const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
-let arrows = [], originposi = [];
+let arrows = [], originalposi = [];
 //矢印生成
 function generate_arrows(src) {
     const geo = new THREE.BoxGeometry(0.5, 0, 0.5);
     const mate = new THREE.MeshBasicMaterial({ map: arrow_image, transparent: true });
 
-    arrows = []; originposi = [];
+    arrows = []; originalposi = [];
     for (let i = 0; i < map[src].length; ++i) {
         let arrow = new THREE.Mesh(geo, mate);
-
         arrow.name = map[src][i];
         arrows.push(arrow);
 
         let xmove = posi_line[map[src][i]][0] - posi_line[src][0],
+            ymove = posi_line[map[src][i]][1] - posi_line[src][1],
             zmove = posi_line[map[src][i]][2] - posi_line[src][2];
 
-        arrow.rotation.y = posi_to_theta(zmove,xmove)-Math.PI*0.5;
         [xmove, zmove] = [zmove, -xmove]; //swap
         //半径
         let r = 0.75;
-        originposi.push([xmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove)), zmove * Math.sqrt(r*r / (xmove * xmove + zmove * zmove))]);
-        arrow.position.y = -1.3-i*0.001;
+        originalposi.push(new THREE.Vector3(xmove,ymove,zmove).normalize().multiplyScalar(r));
+        arrow.lookAt(originalposi[i].clone().negate()); //回転
         street_scene.add(arrow);
     }
 }
@@ -1020,8 +1032,12 @@ function move_camera(){ //3dの時のみ実行
 
             <div class="modep" style="display: none"></div>
         `);
-        document.getElementById("menubar").addEventListener("pointerdown",()=>{ street_controls_orbit.enabled = false; });
-        document.getElementById("menubar").addEventListener("pointerup",()=>{ street_controls_orbit.enabled = true; });
+        const menubar = document.getElementById("menubar");
+        menubar.addEventListener("pointerdown",()=>{ street_controls_orbit.enabled = false; });
+        menubar.addEventListener("pointerup",()=>{ street_controls_orbit.enabled = true; });
+        menubar.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) e.preventDefault();
+        }, true);
         return;
     }
     //カメラ移動
@@ -1290,7 +1306,6 @@ function render() {
         renderer.render(scene, camera);
     } else { //street view 中
         if(!locked) street_controls.update(); //直前でupdate
-        renderer.render(street_scene, street_camera);
         let x,z;
         if(!locked){
             x = -street_camera.position.x
@@ -1300,8 +1315,13 @@ function render() {
             x = vec.x;
             z = vec.z;
         }
+        const dvec = new THREE.Vector3(150*x,-1.3,150*z);
         //矢印の移動
-        for (let i = 0; i < arrows.length; ++i) arrows[i].position.set(150*x+originposi[i][0], -1.3-i*0.001, 150*z+originposi[i][1]);
+        for (let i = 0; i < arrows.length; ++i){
+            arrows[i].position.copy(originalposi[i].clone().add(dvec));
+            arrows[i].position.y -= i*0.001;
+        }
+        renderer.render(street_scene, street_camera);
     }
 
     timeCheck();
