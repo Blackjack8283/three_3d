@@ -71,7 +71,7 @@ let street_mode = -1; //通常モード:1/音展モード:-1
 let locked = false; //pointerlockが有効かどうか
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
 const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
-// const user_phone = true;
+let highest_quality = true; //解像度変更用
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -325,6 +325,10 @@ window.addEventListener("keydown",(e)=>{
     } else {
         if(key == "d" || key == "D"){
             del();
+        } else if(key == "l" || key == "L"){
+            if(highest_quality) highest_quality = false;
+            else highest_quality = true;
+            street_move(cur);
         }
     }
 });
@@ -397,16 +401,16 @@ fetch("./locations.json")
             map[val[1]].push(val[0]);
         });
 
-        for(let i = 0; i < posi_line_len; ++i) images[i] = [undefined,undefined];
+        for(let i = 0; i < posi_line_len; ++i) images[i] = [[undefined,undefined],[undefined,undefined]];
     });
 
 async function load_picture (i,j){
     let provec = [];
-    function threeload(url,number,mode){
+    function threeload(url,number,mode,quality){
         return new Promise((resolve)=>{
-            if(images[number][mode] == undefined){
+            if(images[number][mode][quality] == undefined){
                 const loader = new THREE.TextureLoader().load(url,(tex)=>{
-                    images[number][mode] = tex;
+                    images[number][mode][quality] = tex;
                     resolve();
                 });
             } else {
@@ -419,7 +423,10 @@ async function load_picture (i,j){
         await Promise.all(provec);
         provec = [];
     }
-    provec.push(threeload(`../images/image${i}-${j}.JPG`,i,j));
+    if(user_phone || !highest_quality){  provec.push(threeload(`../images/street_sp/image${i}-${j}.JPG`,i,j,0));
+    console.log("low");
+    }
+    else provec.push(threeload(`../images/street_pc/image${i}-${j}.JPG`,i,j,1));
     await wait();
 }
 
@@ -1041,12 +1048,17 @@ let cur;
 window.street_move = (async (to) => {
     arrows.forEach((val) => {street_scene.remove(val);});
     cur = to;
+    
+    let quality;
+    if(user_phone || !highest_quality) quality = 0;
+    else quality = 1;
+
     if(street_mode == 1 || posi_line[to][3] == 1){
         await load_picture(to,0);
-        sphere.material.map = images[to][0];
+        sphere.material.map = images[to][0][quality];
     } else {
         await load_picture(to,1);
-        sphere.material.map = images[to][1];
+        sphere.material.map = images[to][1][quality];
     }
     sphere.material.needsUpdate = true;
     // street_controls.enableDamping = false;
