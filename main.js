@@ -76,7 +76,7 @@ let street_mode = -1; //通常モード:1/音展モード:-1
 let locked = false; //pointerlockが有効かどうか
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
 const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
-let highest_quality = true; //解像度変更用
+let quality = user_phone ? 0 : 1;
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -336,11 +336,17 @@ window.addEventListener("keydown",(e)=>{
             key_flag[5] = true;
         }
     } else {
-        if(key == "d" || key == "D"){
+        if(key == "1"){
             del();
+        } else if(key == "2"){
+            spotSerect();
+        } else if(key == "3"){
+            better_view();
+        } else if(key == "4"){
+            change_mode();
         } else if(key == "l" || key == "L"){
-            if(highest_quality) highest_quality = false;
-            else highest_quality = true;
+            if(quality) quality = 0;
+            else quality = 1;
             street_move(cur);
         }
     }
@@ -372,7 +378,6 @@ window.addEventListener("blur",()=>{
 window.addEventListener("resize", handleResize, false);
 
 //ボタンのテクスチャ
-const button_tex = new THREE.TextureLoader().load('../images/button.png');
 let buttons = [];
 
 let posi_line = [];  //[x,y,z, 枚数, 校舎,階番号]
@@ -436,9 +441,7 @@ async function load_picture (i,j){
         await Promise.all(provec);
         provec = [];
     }
-    if(user_phone || !highest_quality){  provec.push(threeload(`../images/street_sp/image${i}-${j}.JPG`,i,j,0));
-    console.log("low");
-    }
+    if(!quality) provec.push(threeload(`../images/street_sp/image${i}-${j}.JPG`,i,j,0));
     else provec.push(threeload(`../images/street_pc/image${i}-${j}.JPG`,i,j,1));
     await wait();
 }
@@ -621,10 +624,10 @@ window.change_mode = (async () =>{
 
     if(street_mode == 1 || posi_line[cur][3] == 1){
         await load_picture(cur,0);
-        sphere.material.map = images[cur][0];
+        sphere.material.map = images[cur][0][quality];
     } else {
         await load_picture(cur,1);
-        sphere.material.map = images[cur][1];
+        sphere.material.map = images[cur][1][quality];
     }
     sphere.material.needsUpdate = true;
 
@@ -962,7 +965,6 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
 
     turn_flag = true;
     turn_info = {ahv: ahv, ocv: ocv, oav: oav, theta: theta, oiv:oiv, cnt1: 1, cnt2: 0, rad: Math.PI*0.25, to: to};
-    console.log(turn_info);
 }
 
 function move_camera(){ //3dの時のみ実行
@@ -1064,10 +1066,6 @@ let cur;
 window.street_move = (async (to) => {
     arrows.forEach((val) => {street_scene.remove(val);});
     cur = to;
-    
-    let quality;
-    if(user_phone || !highest_quality) quality = 0;
-    else quality = 1;
 
     if(street_mode == 1 || posi_line[to][3] == 1){
         await load_picture(to,0);
@@ -1138,36 +1136,18 @@ function ease_diff(cur,goal,speed){ //返り値はイージングされた速度
 function move_camera_target(){
     if(turn_flag) return;
     const dvec = new THREE.Vector3(0,0,0);
+    const _vector = new THREE.Vector3();
+    const right = _vector.setFromMatrixColumn( camera.matrix, 0 ).clone();
     if(!user_phone){ //スマホ以外
-        // if(key_flag[0]) dvec.add(front);
-        // if(key_flag[1]) dvec.add(front.clone().negate());
-        // if(key_flag[2]) dvec.add(side);
-        // if(key_flag[3]) dvec.add(side.clone().negate());
-        // if(key_flag[4]) dvec.add(up);
-        // if(key_flag[5]) dvec.add(up.clone().negate());
-        // dvec.normalize();
-        // if ( controls.isLocked === true ) {
-            const _vector = new THREE.Vector3();
-            const right = _vector.setFromMatrixColumn( camera.matrix, 0 ).clone();
-            const forward = _vector.crossVectors( camera.up, _vector );
-            if (key_flag[0]) dvec.add(forward);
-            if (key_flag[1]) dvec.add(forward.negate());
-            if (key_flag[2]) dvec.add(right);
-            if (key_flag[3]) dvec.add(right.negate());
-            if (key_flag[4]) dvec.add(camera.up);
-            if (key_flag[5]) dvec.add(camera.up.clone().negate());
-        // }
+        const forward = _vector.crossVectors( camera.up, _vector );
+        if (key_flag[0]) dvec.add(forward);
+        if (key_flag[1]) dvec.add(forward.negate());
+        if (key_flag[2]) dvec.add(right);
+        if (key_flag[3]) dvec.add(right.negate());
+        if (key_flag[4]) dvec.add(camera.up);
+        if (key_flag[5]) dvec.add(camera.up.clone().negate());
     } else { //スマホ
-        //計算を改良すべし
-        // const ey = new THREE.Vector3(0,1,0);
-        const c = camera_target.clone().sub(camera.position);
-        const eX = (new THREE.Vector3(c.x,0,c.z)).normalize(); //eX=(0,0,0)を防ぐためにupベクトル求める
-        const X = eX.x!=0 ? c.x/eX.x : c.z/eX.z;
-        const y = c.y;                                        //θ=90°のため (p,q)=(-y,x)
-        const up = (new THREE.Vector3(-y*eX.x, X, -y*eX.z)).normalize(); //上向きベクトル
-
-        const side = c.clone().normalize().cross(up); // |side| = 1
-        const front = c.normalize();
+        const forward = camera_target.clone().sub(camera.position).normalize();
 
         stick_canvas.clearRect(0,0,stick.width,stick.height);
         let ocv;
@@ -1179,13 +1159,14 @@ function move_camera_target(){
             ocv = new THREE.Vector2(0,0);
         }
 
+        //stick描画
         const dxy = new THREE.Vector2(stick.width*0.25,stick.height*0.25).add(new THREE.Vector2(ocv.y,ocv.x));
         stick_canvas.drawImage(stick_imgs[1], stick.width*0.05, stick.height*0.05, stick.width*0.9, stick.height*0.9);
         stick_canvas.drawImage(stick_imgs[0], dxy.x, dxy.y, stick.width*0.5, stick.height*0.5);
 
         const len = ocv.length();
         ocv.normalize().multiplyScalar(len/max);
-        dvec.add(front.clone().multiplyScalar(-ocv.x)).add(side.clone().multiplyScalar(ocv.y));
+        dvec.add(forward.clone().multiplyScalar(-ocv.x)).add(right.clone().multiplyScalar(ocv.y));
     }
 
     const t = camera_target.clone().add(dvec);
