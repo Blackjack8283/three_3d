@@ -111,7 +111,7 @@ scene.add(camera);
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
     mesh.rotation.x = Math.PI * -.5;
-    mesh.position.y -= 2;
+    mesh.position.y -= 3.5;
     //sceneに追加
     scene.add(mesh);
 }
