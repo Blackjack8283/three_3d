@@ -63,9 +63,14 @@ body, html {
 .res{
     width: 100%;
     height: 70px;
-    overflow: auto;
+    overflow: hidden;
+    font-size: 15px;
+    border: 1px solid rgb(151, 151, 151);
     background-color: rgb(254, 251, 231);
     user-select: none;
+}
+.search_bold{
+    font-weight: bold;
 }
 #spotviewer {
     width: 100%;

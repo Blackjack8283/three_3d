@@ -26,7 +26,7 @@ container.insertAdjacentHTML("afterbegin",`
 `);
 let search = document.getElementById("search");
 let searchres = document.getElementById("searchres");
-search.addEventListener("input", ()=>{
+search.addEventListener("input", () => {
     let val = search.value;
     searchres.style.display = "none";
     while(searchres.firstChild){
@@ -35,10 +35,11 @@ search.addEventListener("input", ()=>{
     if(val == "") return;
     for(let i = 0; i < des_len; i++){
         const text = description[i];
-        if(text.indexOf(val) != -1){
+        let index = text.indexOf(val); 
+        if(index != -1){
             searchres.style.display = "block";
             searchres.insertAdjacentHTML("beforeend",`
-                <div class="res" id="res${i}">${text}</div>
+                <div class="res" id="res${i}">${text.slice(0,index)}<span class="search_bold">${text.slice(index,index+val.length)}</span>${text.slice(index+val.length+1)}</div>
             `);
             const obj = {
                 position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
@@ -400,34 +401,34 @@ let description = [];
 fetch("./locations.json")
     .then(res => res.json())
     .then(data => {
-        posi_line = data.position;
-        connection = data.connection;
-        description = data.description;
-        posi_line_len = posi_line.length;
-        des_len = description.length;
+    posi_line = data.position;
+    connection = data.connection;
+    description = data.description;
+    posi_line_len = posi_line.length;
+    des_len = description.length;
 
-        //posiに整理
-        for(let i=0; i<posi_line_len; ++i){
-            if(posi_line[i][4] == -1) continue;
-            posi[ posi_line[i][4] ][ posi_line[i][5] ].push([ posi_line[i][0], posi_line[i][1], posi_line[i][2], posi_line[i][3], i]);
-        }
+    //posiに整理
+    for(let i=0; i<posi_line_len; ++i){
+        if(posi_line[i][4] == -1) continue;
+        posi[ posi_line[i][4] ][ posi_line[i][5] ].push([ posi_line[i][0], posi_line[i][1], posi_line[i][2], posi_line[i][3], i]);
+    }
 
-        //connectionの整理
-        for (let i = 0; i < posi_line_len; ++i) map.push([]);
-        connection.forEach((val) => {
-            map[val[0]].push(val[1]);
-            map[val[1]].push(val[0]);
-        });
-
-        for(let i = 0; i < posi_line_len; ++i) images[i] = [[undefined,undefined],[undefined,undefined]];
+    //connectionの整理
+    for (let i = 0; i < posi_line_len; ++i) map.push([]);
+    connection.forEach((val) => {
+        map[val[0]].push(val[1]);
+        map[val[1]].push(val[0]);
     });
+
+    for(let i = 0; i < posi_line_len; ++i) images[i] = [[undefined,undefined],[undefined,undefined]];
+});
 
 async function load_picture (i,j){
     let provec = [];
     function threeload(url,number,mode,quality){
         return new Promise((resolve)=>{
             if(images[number][mode][quality] == undefined){
-                const loader = new THREE.TextureLoader().load(url,(tex)=>{
+                new THREE.TextureLoader().load(url,(tex)=>{
                     images[number][mode][quality] = tex;
                     resolve();
                 });
@@ -447,7 +448,6 @@ async function load_picture (i,j){
 }
 
 //上のバーなど削除(global)
-
 window.del = () => {
     arrows.forEach((val) => {street_scene.remove(val);});
     arrows = [];
@@ -875,7 +875,6 @@ function click(x,y) {
     mouse.y = -(y / height) * 2 + 1;
 
     const ray = new THREE.Raycaster;
-    //ここからmodeで分岐作って！！！ <====================
     if(mode == "street"){
         ray.setFromCamera(mouse, street_camera);
         const bump = ray.intersectObjects(street_scene.children,true);
@@ -936,17 +935,15 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     if(oav.y > ocv.y) theta *= -1;
     const to = Number(button.name.split("_")[1]);
 
-    //aを通るy一定の平面とfrontベクトルの交点(oiv)
-    const h = oav.clone().dot(new THREE.Vector3(0,1,0));
     const n = new THREE.Vector3(0,1,0);
     const m = locked ? camera.getWorldDirection(new THREE.Vector3()) : camera_target.clone().sub(camera.position);
+    //aを通るy=constの平面とfrontベクトル(m)の交点(oiv)
     let oiv;
-
     if(n.clone().dot(m) == 0) m.sub(new THREE.Vector3(0,0.001,0)); //並行対策
     if(n.clone().dot(m) * n.clone().dot(acv.clone().negate()) < 0) oiv = camera_target.clone(); //特殊な場合
     else{
-        oiv = camera.position.clone()
-            .add(m.clone().multiplyScalar( (h - n.clone().dot(camera.position)) / n.clone().dot(m) ));
+        let t = (oav.y-camera.position.y)/m.y;
+        oiv = new THREE.Vector3(m.x*t+camera.position.x, oav.y, m.z*t+camera.position.z);
     }
     //移行用    
     if(!locked){
