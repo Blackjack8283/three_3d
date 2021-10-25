@@ -17,6 +17,7 @@ document.getElementById("container").insertAdjacentHTML("afterbegin",`
     <div id = 'center'></div>
 `);
 
+//検索バー
 let focused = false;
 container.insertAdjacentHTML("afterbegin",`
     <div id="searchdiv">
@@ -285,9 +286,11 @@ element.addEventListener("pointerup", (e) => {
     click(x,y);
 }, false);
 
-console.log("push M key to lock your pointer");
+console.log("push M to lock your pointer");
+let m_flag = false;
 function lock_pointer(){
     if(turn_flag) return;
+    m_flag = false;
     locked = true;
     controls = controls_pointer;
     street_controls = street_controls_pointer;
@@ -299,7 +302,13 @@ function lock_pointer(){
 };
 
 function release_pointer(){
-    if(turn_flag) return;
+    if(turn_flag){ //カメラ移動時
+        if(m_flag){ //Mキーの時はパス
+            m_flag = false;
+            return;
+        } //Escの時は止める
+        else turn_flag = false;
+    }
     locked = false;
     controls.unlock();
     if(mode == "3d") camera_target = camera.position.clone().add(controls.getDirection(new THREE.Vector3()).multiplyScalar(0.01));
@@ -319,6 +328,7 @@ window.addEventListener("keydown",(e)=>{
     if(focused) return;
     const key = e.key;
     if(key == "m" || key == "M"){
+        m_flag = true; //Escapeと区別のため
         if(locked) release_pointer();
         else lock_pointer();
     }
@@ -335,6 +345,18 @@ window.addEventListener("keydown",(e)=>{
             key_flag[4] = true;
         } else if(key == "Shift"){
             key_flag[5] = true;
+        } else if(key == "Escape"){
+            if(turn_flag){ //カメラ移動時
+                turn_flag = false;
+                if(!locked){ //非ロック時 ロック時はrelease_lockで
+                    const vec = camera_target.clone().sub(camera.position).normalize().multiplyScalar(0.01);
+                    camera_target = camera.position.clone().add(vec);
+                    controls.enableDamping = true;
+                    controls.enableRotate = true;
+                    controls.maxDistance = 0.01;
+                    controls.minDistance = 0.01;
+                }
+            }
         }
     } else {
         if(key == "1"){
@@ -994,10 +1016,10 @@ function move_camera(){ //3dの時のみ実行
         mode = "street";
         const theta = posi_to_theta(camera.position.z-turn_info.oav.z,camera.position.x-turn_info.oav.x);
         if(!locked){
-            controls.maxDistance = 0.01;
-            controls.minDistance = 0.01;
             controls.enableDamping = true;
             controls.enableRotate = true;
+            controls.maxDistance = 0.01;
+            controls.minDistance = 0.01;
             street_controls_orbit.enabled = true;
             controls_orbit.enabled = false;
             // camera_target.copy(turn_info.oav);
@@ -1290,7 +1312,8 @@ function render() {
         move_groups();
         move_camera_target();
         if(!locked){
-            if(!turn_flag) controls.target.copy(camera_target);
+            if(!turn_flag) controls.target.copy(camera_target); //通常時
+            else camera_target = controls.target; ///カメラが動く時
             controls.update(); //ここでupdate
         }
         renderer.render(scene, camera);
