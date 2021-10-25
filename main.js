@@ -307,7 +307,10 @@ function release_pointer(){
             m_flag = false;
             return;
         } //Escの時は止める
-        else turn_flag = false;
+        else{
+            search.style.display = "block";
+            turn_flag = false;
+        }
     }
     locked = false;
     controls.unlock();
@@ -323,7 +326,7 @@ document.addEventListener("pointerlockchange", ()=>{
     if(document.pointerLockElement != element && locked) release_pointer();
 });
 
-let key_flag = [false,false,false,false,false,false];
+let key_flag = [false,false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
     const key = e.key;
@@ -345,9 +348,12 @@ window.addEventListener("keydown",(e)=>{
             key_flag[4] = true;
         } else if(key == "Shift"){
             key_flag[5] = true;
-        } else if(key == "Escape"){
+        } else if(key == "Control"){
+            key_flag[6] = true;
+        }else if(key == "Escape"){
             if(turn_flag){ //カメラ移動時
                 turn_flag = false;
+                search.style.display = "block";
                 if(!locked){ //非ロック時 ロック時はrelease_lockで
                     const vec = camera_target.clone().sub(camera.position).normalize().multiplyScalar(0.01);
                     camera_target = camera.position.clone().add(vec);
@@ -389,13 +395,16 @@ window.addEventListener("keyup",(e)=>{
         key_flag[4] = false;
     } else if(key == "Shift"){
         key_flag[5] = false;
+    } else if(key == "Control"){
+        key_flag[6] = false;
+        key_flag[4] = false; //応急処置
     } else if(key == "Escape"){
-        key_flag = [false,false,false,false,false,false];
+        key_flag = [false,false,false,false,false,false,false];
     }
 });
 
 window.addEventListener("blur",()=>{
-    key_flag = [false,false,false,false,false,false];
+    key_flag = [false,false,false,false,false,false,false];
 });
 
 window.addEventListener("resize", handleResize, false);
@@ -1165,6 +1174,7 @@ function move_camera_target(){
         if (key_flag[3]) dvec.add(right.negate());
         if (key_flag[4]) dvec.add(camera.up);
         if (key_flag[5]) dvec.add(camera.up.clone().negate());
+        if (key_flag[6]) dvec.multiplyScalar(2);
     } else { //スマホ
         const forward = camera_target.clone().sub(camera.position).normalize();
 
