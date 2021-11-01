@@ -73,6 +73,38 @@ window.addEventListener("pointerdown", ()=>{
     searchres.style.display = "none";
 });
 
+//操作方法
+container.insertAdjacentHTML("afterbegin",`
+    <div id="guide_button">
+        <div id="close_text">操作方法</div>
+    </div>
+    <div id="guide">
+        <div id="guide_background">
+            <div id="guide_content">
+                <div id="guide_title">操作方法</div>
+                <div id="policy_text"></div>
+                <div id="guide_close">
+                    <div id="close_text">閉じる</div>
+                </div>
+            </div>
+        </div>
+    </div>
+`);
+const guide_button = document.getElementById("guide_button");
+const guide_close = document.getElementById("guide_close");
+const guide_content = document.getElementById("guide_content");
+const guide_background = document.getElementById("guide_background");
+const policy_text = document.getElementById("policy_text");
+const guide = document.getElementById("guide");
+guide_button.addEventListener("pointerdown", ()=>{ guide.style.display = "block"});
+guide_close.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
+guide_content.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
+guide_background.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
+
+
+
+
+
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
 let locked = false; //pointerlockが有効かどうか
@@ -432,6 +464,19 @@ let description = [];
 fetch("./locations.json")
     .then(res => res.json())
     .then(data => {
+    const guide_array = data.guide;
+    let guide_text_sp = "";
+    let guide_text_pc = "";
+    //文を合成
+    for(let i = 0; i < guide_array[0].length; i++){
+        guide_text_sp += guide_array[0][i];
+    }
+    for(let i = 0; i < guide_array[1].length; i++){
+        guide_text_pc += guide_array[1][i];
+    }
+    if(user_phone) policy_text.innerHTML = guide_text_sp;
+    else policy_text.innerHTML = guide_text_pc;
+
     posi_line = data.position;
     connection = data.connection;
     description = data.description;

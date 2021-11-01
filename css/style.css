@@ -72,6 +72,127 @@ body, html {
 .search_bold{
     font-weight: bold;
 }
+#guide {
+    z-index: 10;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    box-sizing: border-box;
+    color: #444;
+}
+#guide_background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #6668;
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+}
+#guide_close {
+    position: absolute;
+    bottom: 2vh;
+    margin: 0 calc(50% - 100px);
+    border: 1px solid #222;
+    width: 200px;
+    height: 50px;
+    background-color: hsla(0,0%,93.3%,.53333);
+}
+#guide_button{
+    z-index: 10;
+    color: #f5f5f5;
+    text-shadow: #000 0 0 10px;
+    display: block;
+    position: absolute;
+    bottom: -5px;
+    right: 5px;
+    line-height: 40px;
+}
+#close_text {
+    text-align: center;
+    margin: 12px;
+}
+#guide_content {
+    /* --content_width_cssVar: 75vw; */
+    /* @include smartphone($root: $root) {
+      @include portrait($root: $root) {
+        --content_width_cssVar: 90vw;
+      }
+    } */
+    /* @media screen and(max-width: 480px) {
+        --content_width_cssVar: 90vw;
+    } */
+    /* --content_width: 75;
+    --content_height: 75; */
+    position: relative;
+    margin: 10vh 10vw;
+    border: 1px transparent solid;
+    width: 80vw;
+    height: 80vh;
+    background-color: #fffb;
+    box-shadow: 5px 5px #4448;
+}
+#guide_title {
+    margin-top: 1vh;
+    margin-bottom: 6vh;
+    width: 100%;
+    height: 5vh;
+    /* line-height: 50px; */
+    text-align: center;
+    font-size: 2em;
+    font-weight: bold;
+    /* @include smartphone($root: $root) {
+      font-size: 75%;
+      @include landscape($root: $root) {
+        margin: 10px 0;
+        height: 30px;
+        h1 {
+          margin: 0;
+          line-height: 30px;
+        }
+      }
+    } */
+}
+#policy_text {
+    margin: 0 40px;
+    /*padding: 40px;*/
+    width: calc(100% - 40px * 2);
+    /*width: 100%;*/
+    /*height: calc(100% - 100px);*/
+    height: calc(100% - (100px + 100px));
+    overflow-x: revert;
+    overflow-y: scroll;
+    font-weight: 300;
+    color: #444;
+    height: 50vh;
+
+    /* @include smartphone($root: $root) {
+      @include landscape($root: $root) {
+        height: calc(100% - (50px + 50px));
+      }
+    } */
+
+    /* ::v-deep {
+      * {
+        color: #444;
+        @include smartphone($root: $root) {
+          font-size: .75rem;
+        }
+      }
+
+      h2 {
+        font-weight: 500;
+        @include smartphone($root: $root) {
+          font-size: 1.2rem;
+        }
+      }
+    } */
+}
+
 #spotviewer {
     width: 100%;
     height: 25%;
