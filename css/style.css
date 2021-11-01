@@ -34,7 +34,7 @@ body, html {
     background-color: rgb(255, 255, 255);
 }
 #search:focus {
-    border: 2px solid rgb(96, 178, 255); 
+    border: 2px solid rgb(96, 178, 255);
     z-index: 6;
     outline: 0;
 }
@@ -384,8 +384,8 @@ body, html {
         font-size: 3vw;
     }
     #showbv {
-        border-bottom: 1.3vw solid rgb(255, 255, 255, 0.9);
-        border-right: 1.3vw solid rgb(255, 255, 255, 0.9);
+        border-bottom: 1.3vw solid rgba(255, 255, 255, 0.9);
+        border-right: 1.3vw solid rgba(255, 255, 255, 0.9);
     }
     .modep {
         height: 8%;
@@ -409,8 +409,8 @@ body, html {
         font-size: 3vw;
     }
     #showbv {
-        border-bottom: .8vmin solid rgb(255, 255, 255, 0.9);
-        border-right: .8vmin solid rgb(255, 255, 255, 0.9);
+        border-bottom: .8vmin solid rgba(255, 255, 255, 0.9);
+        border-right: .8vmin solid rgba(255, 255, 255, 0.9);
     }
 
     .modep {
