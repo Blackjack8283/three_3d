@@ -40,7 +40,7 @@ search.addEventListener("input", () => {
         if(index != -1){
             searchres.style.display = "block";
             searchres.insertAdjacentHTML("beforeend",`
-                <div class="res" id="res${i}">${text.slice(0,index)}<span class="search_bold">${text.slice(index,index+val.length)}</span>${text.slice(index+val.length+1)}</div>
+                <div class="res" id="res${i}">${text.slice(0,index)}<span class="search_bold">${text.slice(index,index+val.length)}</span>${text.slice(index+val.length)}</div>
             `);
             const obj = {
                 position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
@@ -76,15 +76,15 @@ window.addEventListener("pointerdown", ()=>{
 //操作方法
 container.insertAdjacentHTML("afterbegin",`
     <div id="guide_button">
-        <div id="close_text">操作方法</div>
+        <div id="guide_button_text"></div>
     </div>
-    <div id="guide">
+    <div id="guide" style="display:none;">
         <div id="guide_background">
             <div id="guide_content">
                 <div id="guide_title">操作方法</div>
                 <div id="policy_text"></div>
                 <div id="guide_close">
-                    <div id="close_text">閉じる</div>
+                    <div>閉じる</div>
                 </div>
             </div>
         </div>
@@ -95,22 +95,23 @@ const guide_close = document.getElementById("guide_close");
 const guide_content = document.getElementById("guide_content");
 const guide_background = document.getElementById("guide_background");
 const policy_text = document.getElementById("policy_text");
+const guide_button_text = document.getElementById("guide_button_text");
 const guide = document.getElementById("guide");
 guide_button.addEventListener("pointerdown", ()=>{ guide.style.display = "block"});
 guide_close.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
 guide_content.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
 guide_background.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
 
-
-
-
-
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
 let locked = false; //pointerlockが有効かどうか
 const user_ios =  /[ \(]iP/.test(navigator.userAgent);
-const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/);
+const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/) ? true : false;
 let quality = user_phone ? 0 : 1;
+
+if(user_phone) guide_button_text.innerHTML = "操作方法";
+else guide_button_text.innerHTML = "操作方法(G)";
+
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -228,9 +229,9 @@ function create_controls(cam,elem){
     controls.enablePan = false;
     controls.enableRotate = true;
 
-    // 視点の速さ (timeCheck関数内も変更)
+    // 視点の速さ
     controls.dampingFactor = 0.2;
-    controls.rotateSpeed = 0.6;
+    controls.rotateSpeed = -0.4;
 
     return controls;
 }
@@ -358,6 +359,7 @@ document.addEventListener("pointerlockchange", ()=>{
     if(document.pointerLockElement != element && locked) release_pointer();
 });
 
+//キー操作
 let key_flag = [false,false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
@@ -366,6 +368,9 @@ window.addEventListener("keydown",(e)=>{
         m_flag = true; //Escapeと区別のため
         if(locked) release_pointer();
         else lock_pointer();
+    } else if(key == "g" || key == "G"){
+        if(guide.style.display == "none") guide.style.display = "block";
+        else guide.style.display = "none";
     }
     if(mode == "3d"){
         if(key == "w" || key == "W" || key == "ArrowUp"){
@@ -382,7 +387,7 @@ window.addEventListener("keydown",(e)=>{
             key_flag[5] = true;
         } else if(key == "Control"){
             key_flag[6] = true;
-        }else if(key == "Escape"){
+        } else if(key == "Escape"){
             if(turn_flag){ //カメラ移動時
                 turn_flag = false;
                 search.style.display = "block";
@@ -395,6 +400,7 @@ window.addEventListener("keydown",(e)=>{
                     controls.minDistance = 0.01;
                 }
             }
+            if(guide.style.display == "block") guide.style.display = "none";
         }
     } else {
         if(key == "1"){
@@ -1342,9 +1348,6 @@ function timeCheck() { //20fps未満は解像度下げる
             const cur_pixelRatio = window.devicePixelRatio;
             if(cur_pixelRatio > 1) renderer.setPixelRatio(1);
             else renderer.setPixelRatio(0.5);
-
-            // if(mode == "3d") controls.rotateSpeed = 0.6*3; //視点の速さ 遅れ修正
-            // else street_controls.rotateSpeed = 0.6*3;
 
             true_cnt = 0; false_cnt = 0;
             limited = true;
