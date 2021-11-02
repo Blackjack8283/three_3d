@@ -120,6 +120,20 @@ body, html {
     font-weight: bold;
 }
 
+/* 戻るボタン */
+#leave_button {
+    z-index: 9;
+    position: absolute;
+    top: -15px;
+    left: 15px;
+    height: 100px;
+    font-weight: bold;
+    font-size: 60px;
+    color:#f5f5f5;
+    text-shadow: #000 0 0 10px;
+    display: block;
+}
+
 /* 操作説明 */
 #guide {
     z-index: 10;
@@ -295,7 +309,7 @@ body, html {
     margin: 0;
 }
 #menub {
-    z-index: 10;
+    z-index: 6;
     position: absolute;
     top: 1vmin;
     left: 14.5vmin;

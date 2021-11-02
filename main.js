@@ -73,7 +73,7 @@ window.addEventListener("pointerdown", ()=>{
     searchres.style.display = "none";
 });
 
-//操作方法
+//ガイド
 container.insertAdjacentHTML("afterbegin",`
     <div id="guide_button">
         <div id="guide_button_text"></div>
@@ -101,6 +101,13 @@ guide_button.addEventListener("pointerdown", ()=>{ guide.style.display = "block"
 guide_close.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
 guide_content.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
 guide_background.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
+
+//元のページに戻るボタン
+container.insertAdjacentHTML("afterbegin",`
+    <div id="leave_button">←</div>
+`);
+const leave_button = document.getElementById("leave_button");
+leave_button.addEventListener("pointerdown", ()=>{ history.back(); });
 
 let mode = "3d"; //3dモデルかstreet viewか
 let street_mode = -1; //通常モード:1/音展モード:-1
@@ -176,7 +183,8 @@ scene.add(camera);
 {
     const geometry = new THREE.SphereGeometry(400, 64, 64);
     geometry.scale(-1, 1, 1);
-    const material =  new THREE.MeshLambertMaterial({color: 0x87ceeb});
+    const texture = new THREE.TextureLoader().load('./images/sky.JPG');
+    const material =  new THREE.MeshLambertMaterial({map: texture});
     const sphere = new THREE.Mesh( geometry, material);
     scene.add( sphere );
 }
@@ -561,6 +569,7 @@ window.del = () => {
     move_groups_trigger(cur,true);
     stick.style.display = "block";
     search.style.display = "block";
+    leave_button.style.display = "block";
 };
 
 window.move_groups_trigger = (cur,needs_calc)=>{
@@ -1038,6 +1047,7 @@ window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
     search.style.display = "none";
     searchres.style.display = "none";
     search.value = "";
+    leave_button.style.display = "none";
     while(searchres.firstChild){
         searchres.removeChild(searchres.firstChild);
     }
@@ -1111,7 +1121,7 @@ function move_camera(){ //3dの時のみ実行
             </div>
 
             <div id='spotviewer'>
-                <div class="content" style="background-image: url(./images/link01.png); margin-left: 1%;" onclick="move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
+                <div class="content" style="background-image: url(./images/link01.png); margin-left: 1%;" onclick="street_move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
                 <div class="content" style="background-image: url(./images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
                 <div class="content" style="background-image: url(./images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
                 <div class="content" style="background-image: url(./images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
