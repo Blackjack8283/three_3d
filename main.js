@@ -1,8 +1,8 @@
-import * as THREE from '../three/build/three.module.js';
-import {OrbitControls} from '../three/examples/jsm/controls/OrbitControls.js';
-import {PointerLockControls} from '../three/examples/jsm/controls/PointerLockControls.js';
-import {OBJLoader} from '../three/examples/jsm/loaders/OBJLoader.js';
-import {MTLLoader} from '../three/examples/jsm/loaders/MTLLoader.js';
+import * as THREE from './three/build/three.module.js';
+import {OrbitControls} from './three/examples/jsm/controls/OrbitControls.js';
+import {PointerLockControls} from './three/examples/jsm/controls/PointerLockControls.js';
+import {OBJLoader} from './three/examples/jsm/loaders/OBJLoader.js';
+import {MTLLoader} from './three/examples/jsm/loaders/MTLLoader.js';
 
 let width = document.documentElement.clientWidth;
 let height = document.documentElement.clientHeight;
@@ -127,7 +127,7 @@ scene.add(camera);
     const planeSize = 1024;
 
     //画像
-    const texture = new THREE.TextureLoader().load('../images/grass.png');
+    const texture = new THREE.TextureLoader().load('./images/grass.png');
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.magFilter = THREE.LinearMipmapLinearFilter;
@@ -518,8 +518,8 @@ async function load_picture (i,j){
         await Promise.all(provec);
         provec = [];
     }
-    if(!quality) provec.push(threeload(`../images/street_sp/image${i}-${j}.JPG`,i,j,0));
-    else provec.push(threeload(`../images/street_pc/image${i}-${j}.JPG`,i,j,1));
+    if(!quality) provec.push(threeload(`./images/street_sp/image${i}-${j}.JPG`,i,j,0));
+    else provec.push(threeload(`./images/street_pc/image${i}-${j}.JPG`,i,j,1));
     await wait();
 }
 
@@ -742,7 +742,7 @@ window.change_mode = (async () =>{
 });
 
 //矢印読み込み
-const arrow_image = new THREE.TextureLoader().load('../images/arrow.png');
+const arrow_image = new THREE.TextureLoader().load('./images/arrow.png');
 let arrows = [], originalposi = [];
 //矢印生成
 function generate_arrows(src) {
@@ -1099,17 +1099,17 @@ function move_camera(){ //3dの時のみ実行
                     <div class='menubS'></div>
                 </div>
 
-                <img src="../images/hide.png" id='changeb' onclick='better_view()'></img>
+                <img src="./images/hide.png" id='changeb' onclick='better_view()'></img>
 
-                <img src="../images/change.png" id="mode" onclick="change_mode()"></img>
+                <img src="./images/change.png" id="mode" onclick="change_mode()"></img>
             </div>
 
             <div id='spotviewer'>
-                <div class="content" style="background-image: url(../images/link01.png); margin-left: 1%;" onclick="move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
-                <div class="content" style="background-image: url(../images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
-                <div class="content" style="background-image: url(../images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
-                <div class="content" style="background-image: url(../images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
-                <div class="content" style="background-image: url(../images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
+                <div class="content" style="background-image: url(./images/link01.png); margin-left: 1%;" onclick="move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
+                <div class="content" style="background-image: url(./images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
+                <div class="content" style="background-image: url(./images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
+                <div class="content" style="background-image: url(./images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
+                <div class="content" style="background-image: url(./images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
             </div>
 
             <div class="modep" style="display: none"></div>
@@ -1310,7 +1310,7 @@ function handleResize() {
     // }
 }
 
-const stick_imgs_srcs = ["../images/stick.png","../images/stick_background.png"];
+const stick_imgs_srcs = ["./images/stick.png","./images/stick_background.png"];
 let stick_imgs = [undefined,undefined];
 (async ()=>{
     function imgload(number){

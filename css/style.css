@@ -5,6 +5,44 @@ body, html {
     user-select: none;
     touch-action: manipulation;
 }
+
+/* 全てを含むコンテナ */
+#container {
+    width: 100%;
+    height: 100%;
+}
+#container:-webkit-full-screen {
+    width: 100%;
+    height: 100%;
+}
+#container:-moz-full-screen {
+    width: 100%;
+    height: 100%;
+}
+#container:-ms-fullscreen {
+    width: 100%;
+    height: 100%;
+}
+#container:fullscreen {
+    width: 100%;
+    height: 100%;
+}
+
+/* canvasを含むステージ */
+#stage {
+    background-color: orange;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    position: absolute;
+}
+#stage > canvas {
+    width: 100%;
+}
+
+/* 真ん中の黒四角 */
 #center{
     background-color: #00000088;
     width: 10px;
@@ -15,6 +53,18 @@ body, html {
     z-index:10;
     display: none;
 }
+
+/* スマホのスティック */
+#stick {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    z-index: 5;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+/* 検索バー */
 #searchdiv{
     top: 0px;
     right: 0px;
@@ -72,6 +122,8 @@ body, html {
 .search_bold{
     font-weight: bold;
 }
+
+/* 操作説明 */
 #guide {
     z-index: 10;
     position: absolute;
@@ -193,6 +245,7 @@ body, html {
     } */
 }
 
+/* ストリートビュー左上のバー */
 #spotviewer {
     width: 100%;
     height: 25%;
@@ -412,130 +465,9 @@ body, html {
         border-bottom: .8vmin solid rgba(255, 255, 255, 0.9);
         border-right: .8vmin solid rgba(255, 255, 255, 0.9);
     }
-
     .modep {
         height: 15%;
         top: 42.5%;
         line-height: 15vh;
     }
-}
-#container {
-    width: 100%;
-    height: 100%;
-}
-#container:-webkit-full-screen {
-    width: 100%;
-    height: 100%;
-}
-#container:-moz-full-screen {
-    width: 100%;
-    height: 100%;
-}
-#container:-ms-fullscreen {
-    width: 100%;
-    height: 100%;
-}
-#container:fullscreen {
-    width: 100%;
-    height: 100%;
-}
-.showa{
-    display: block;
-}
-
-.start_div{
-    width: 90%;
-    position: relative;
-    z-index: 1;
-    margin: 5% auto 5% auto;
-}
-
-.start_svg {
-    z-index: 2;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-.start_img {
-    width: 100%;
-}
-
-#stage {
-    background-color: orange;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 4;
-    position: absolute;
-}
-#stage > canvas {
-    width: 100%;
-}
-
-#minimap {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 5;
-    border-radius: 6px;
-    box-shadow: 0px 0px 3px 3px rgb(100,100,100);
-}
-
-#minibutton{
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 6;
-}
-
-#stick {
-    position: absolute;
-    bottom: 0px;
-    left: 0px;
-    z-index: 5;
-    user-select: none;
-    touch-action: manipulation;
-}
-
-#now_loading{
-    position:absolute;
-    bottom:8vh;
-    right:7vw;
-    text-shadow: 3px 3px 3px rgb(50,50,50);
-    font-size:5vw;
-    color:rgb(255,184,31);
-    z-index: 5;
-}
-
-#mypro{
-    position: absolute;
-    bottom: 2vh;
-    left: 2vw;
-    width: 96vw;
-    height: 5vh;
-    z-index: 5;
-
-    -webkit-appearance: none; /*Chrome,Safari*/
-    -moz-appearance: none; /*Firefox*/
-    background-color: rgb(192,226,247);
-    border-radius:10px;
-}
-
-::-webkit-progress-bar{
-    border-radius:10px;
-    background-color: rgb(192,226,247);
-}
-
-/*進捗率の色*/
-
-::-webkit-progress-value{
-    background-color: rgb(0,130,255);
-    border-radius:10px;
-}
-
-::-moz-progress-bar{
-    background-color: rgb(0,130,255);
-    border-radius:10px;
 }
