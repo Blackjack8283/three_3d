@@ -239,7 +239,7 @@ function create_controls(cam,elem){
 
     // 視点の速さ
     controls.dampingFactor = 0.2;
-    controls.rotateSpeed = -0.4;
+    controls.rotateSpeed = 0.4;
 
     return controls;
 }
