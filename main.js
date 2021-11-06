@@ -34,27 +34,78 @@ search.addEventListener("input", () => {
         searchres.removeChild(searchres.firstChild);
     }
     if(val == "") return;
+    let hit = [];
     for(let i = 0; i < des_len; i++){
         const text = description[i];
-        let index = text.indexOf(val); 
-        if(index != -1){
-            searchres.style.display = "block";
-            searchres.insertAdjacentHTML("beforeend",`
-                <div class="res" id="res${i}">${text.slice(0,index)}<span class="search_bold">${text.slice(index,index+val.length)}</span>${text.slice(index+val.length)}</div>
-            `);
-            const obj = {
-                position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
-                name: `button_${i}`
+        const index = text.indexOf(val);
+        if(index != -1){ //完全一致している時
+            hit.push({text: text, from: index, to:index+val.length-1, i: i});
+        } else { //ひらがなでの一致
+            const len = hiragana[i].length;
+            let  cnt = {from:-1, to:-1};
+            for(let j = 0; j < len; j++){
+                let hira_text = "";
+                if(cnt.from == -1) hira_text = hiragana[i][j]; //一致がこれまでにないとき -> j番目の語句
+                else {  //一致がこれまでにあるとき 前回の文字列+１語句
+                    for(let k = cnt.from; k <= cnt.to+1; k++){
+                        hira_text += hiragana[i][k];
+                    }
+                } 
+                
+                //検索
+                if(val.indexOf(hira_text) != -1){ //検索ヒットの時 (検索テキスト ⊃ hira_text)
+                    if(cnt.from == -1){ //いままでヒットしてない
+                        cnt.from = j;
+                        cnt.to = j;
+                    } else { //連続ヒット
+                        cnt.to++;
+                    }
+                    //最後、もしくは完全一致(検索テキスト == hira_text)なら終了
+                    if(j == len-1 || val == hira_text){
+                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i});
+                        break;
+                    }
+                } else { //ヒットしない時
+                    //今までヒット -> そこまで追加
+                    if(hira_text.indexOf(val) != -1){ //部分的に一致のとき (検索テキスト ⊂ hira_text)
+                        if(cnt.from == -1){ //いままでヒットしてない
+                            cnt.from = j;
+                            cnt.to = j;
+                        } else { //連続ヒット
+                            cnt.to++;
+                        }
+                    }
+                    if(cnt.from != -1){ //今までにヒットしている時
+                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i});
+                        break;
+                    }
+                }
             }
-            const resdiv = document.getElementById(`res${i}`);
-            resdiv.addEventListener("pointerup", ()=>{
-                move_groups_trigger(i,true);
-                camera_trigger(obj);
-                search.blur();
-            });
         }
     }
+    
+    //関連順に並び替え
+    hit.sort((a, b) => (b.to-b.from) - (a.to-a.from));
+    //追加
+    hit.forEach(res =>{
+        const {text,from,to,i} = res;
+        searchres.style.display = "block";
+        searchres.insertAdjacentHTML("beforeend",`
+            <div class="res" id="res${i}">${text.slice(0,from)}<span class="search_bold">${text.slice(from,to+1)}</span>${text.slice(to+1)}</div>
+        `);
+        const obj = {
+            position: new THREE.Vector3(posi_line[i][0],posi_line[i][1],posi_line[i][2]),
+            name: `button_${i}`
+        }
+        const resdiv = document.getElementById(`res${i}`);
+        resdiv.addEventListener("pointerup", ()=>{
+            move_groups_trigger(i,true);
+            camera_trigger(obj);
+            search.blur();
+        });
+    });
 });
+
 search.addEventListener("focus", ()=>{
     focused = true;
     if(searchres.firstChild) searchres.style.display = "block";
@@ -474,6 +525,7 @@ let connection = [];
 let map = [];
 let images = [];
 let description = [];
+let hiragana = [];
 
 fetch("./locations.json")
     .then(res => res.json())
@@ -496,6 +548,7 @@ fetch("./locations.json")
     description = data.description;
     posi_line_len = posi_line.length;
     des_len = description.length;
+    hiragana = data.hiragana;
 
     //posiに整理
     for(let i=0; i<posi_line_len; ++i){
