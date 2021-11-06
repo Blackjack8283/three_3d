@@ -1174,8 +1174,8 @@ function move_camera(){ //3dの時のみ実行
             </div>
 
             <div id='spotviewer'>
-                <div class="content" style="background-image: url(./images/link01.png); margin-left: 1%;" onclick="street_move(62), spotSerect()"><div class="cnts">オーバーブリッジ</div></div>
-                <div class="content" style="background-image: url(./images/link02.png)" onclick="street_move(25), spotSerect()"><div class="cnts">光庭</div></div>
+                <div class="content" style="background-image: url(./images/link01.png); margin-left: 1%;" onclick="street_move(0), spotSerect()"><div class="cnts">体育館</div></div>
+                <div class="content" style="background-image: url(./images/link02.png)" onclick="street_move(56), spotSerect()"><div class="cnts">食堂</div></div>
                 <div class="content" style="background-image: url(./images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
                 <div class="content" style="background-image: url(./images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
                 <div class="content" style="background-image: url(./images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
