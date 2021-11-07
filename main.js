@@ -174,11 +174,18 @@ else guide_button_text.innerHTML = "操作方法(G)";
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
+
+//校舎を全部入れるグループ
 scene.name = undefined;
+let building_group = new THREE.Group();
+scene.add(building_group);
+const building_offset = new THREE.Vector3(120,0,-80); //グループをずらす
+building_group.position.add(building_offset);
+
 //カメラ
 const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1000);
-let camera_target = new THREE.Vector3(0,100,80);
-camera.position.set(0, 100, 80.01);
+let camera_target = building_offset.clone().add(new THREE.Vector3(0,100,80));
+camera.position.copy(camera_target.clone().add(new THREE.Vector3(0,0,0.01)));
 scene.add(camera);
 
 //地面
@@ -204,7 +211,7 @@ scene.add(camera);
     //合成してメッシュ
     const mesh = new THREE.Mesh(planeGeo, planeMat);
     mesh.rotation.x = Math.PI * -.5;
-    mesh.position.y -= 3.5;
+    mesh.position.y -= 4.0;
     //sceneに追加
     scene.add(mesh);
 }
@@ -231,8 +238,9 @@ scene.add(camera);
 }
 
 //外側の球
+const sphere_r = 400; //移動判定用変数
 {
-    const geometry = new THREE.SphereGeometry(400, 64, 64);
+    const geometry = new THREE.SphereGeometry(sphere_r, 64, 64);
     geometry.scale(-1, 1, 1);
     const texture = new THREE.TextureLoader().load('./images/sky.JPG');
     const material =  new THREE.MeshLambertMaterial({map: texture});
@@ -378,7 +386,6 @@ element.addEventListener("pointerup", (e) => {
     click(x,y);
 }, false);
 
-console.log("push M to lock your pointer");
 let m_flag = false;
 function lock_pointer(){
     if(turn_flag) return;
@@ -527,6 +534,7 @@ let images = [];
 let description = [];
 let hiragana = [];
 
+//jsonから受け取り
 fetch("./locations.json")
     .then(res => res.json())
     .then(data => {
@@ -601,7 +609,7 @@ window.del = () => {
     document.getElementById("spotviewer").remove();
     document.querySelector(".modep").remove();
     mode = "3d";
-    camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+    camera_target.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]).add(building_offset));
     if(!locked){
         street_controls_orbit.enabled = false;
         controls_orbit.enabled = true;
@@ -611,7 +619,7 @@ window.del = () => {
             .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
         );
     } else {
-        camera.position.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]));
+        camera.position.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]).add(building_group));
         const _vector = new THREE.Vector3();
         _vector.setFromMatrixColumn( street_camera.matrix, 0 );
         const forward = _vector.crossVectors( street_camera.up, _vector );
@@ -853,9 +861,9 @@ function posi_to_theta(x,y){
 }
 
 //obj追加
-let groups = []; //こっちでgroup作ってあとでぶっこむ
+let groups = [];
 
-const dist = 14;
+// const dist = 14;
 const max_alt = 100;
 let state = "closed";
 
@@ -935,7 +943,7 @@ const groups_len = urls.length;
             }
 
             groups[i].ori_position = groups[i].position.clone();
-            scene.add(groups[i]);
+            building_group.add(groups[i]);
         });
     }
     loaded = true;
@@ -969,7 +977,7 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
         // mesh.name = `button_${vec[3]}`;
         mesh.name = `Button_${vec[4]}`;
         buttons.push(mesh);
-        scene.add(mesh);
+        building_group.add(mesh);
     }
 }
 
@@ -977,7 +985,7 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
 function delete_buttons(){ //3dモデル操作中のみ実行
     const len = buttons.length;
     for(let i = 0; i < len; i++){
-        scene.remove(buttons[i]);
+        building_group.remove(buttons[i]);
         buttons[i].geometry.dispose();
         buttons[i].material.dispose();
         buttons[i] = undefined;
@@ -1045,7 +1053,7 @@ function click(x,y) {
                 let len = buttons.length;
                 for(let i = 0; i < len; i++){
                     let button = buttons[i];
-                    const new_dist = button.position.clone().sub(point).length();
+                    const new_dist = button.position.clone().add(building_offset).sub(point).length();
                     if(nearest.dist > new_dist){
                         nearest.dist = new_dist;
                         nearest.button = button;
@@ -1070,7 +1078,7 @@ let turn_info; //obj
 
 //move_camera関数のトリガー(計算)(global)
 window.camera_trigger = (button)=>{ //3dモデル操作中のみ実行
-    const oav = button.position;
+    const oav = button.position.clone().add(building_offset);
     const ocv = camera.position.clone();
     const acv = ocv.clone().sub(oav);
     const ohv = new THREE.Vector3(ocv.x, oav.y, ocv.z);
@@ -1319,8 +1327,8 @@ function move_camera_target(){
         t.add(d);
         p.add(d);
     }
-    if(t.length() > 398){
-        const maxv = t.clone().normalize().multiplyScalar(398);
+    if(t.length() > sphere_r-2){
+        const maxv = t.clone().normalize().multiplyScalar(sphere_r-2);
         const d = t.clone().sub(maxv);
         t.sub(d);
         p.sub(d);
@@ -1332,22 +1340,14 @@ function move_camera_target(){
 function handleResize() {
     width = document.documentElement.clientWidth;
     height = document.documentElement.clientHeight;
-     //canvas更新
 
+     //canvas更新
     if(width >= height){
         hrate = 0.50;
         high = 30;
-        // if(mapz != 0.9){
-        //     mapz = 0.9;
-        //     if(view_cnt != -1) mini_button(cur);
-        // }
     } else {
         hrate = 0.25;
         high = 20;
-        // if(mapz != 0.6){
-        //     mapz = 0.6;
-        //     if(view_cnt != -1) mini_button(cur);
-        // }
     }
 
     stick.width = `${height * hrate}`; stick.height = `${stick.width}`;
