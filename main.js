@@ -42,18 +42,17 @@ search.addEventListener("input", () => {
             hit.push({text: text, from: index, to:index+val.length-1, i: i});
         } else { //ひらがなでの一致
             const len = hiragana[i].length;
-            let  cnt = {from:-1, to:-1};
+            const cnt = {from:-1, to:-1};
+            let hira_val = val;
             for(let j = 0; j < len; j++){
-                let hira_text = "";
-                if(cnt.from == -1) hira_text = hiragana[i][j]; //一致がこれまでにないとき -> j番目の語句
-                else {  //一致がこれまでにあるとき 前回の文字列+１語句
-                    for(let k = cnt.from; k <= cnt.to+1; k++){
-                        hira_text += hiragana[i][k];
-                    }
-                } 
+                let hira_text = hiragana[i][j];
+                ///一致していたものをvalの頭から削除
+                if(cnt.from != -1){
+                    hira_val = hira_val.slice(hiragana[i][j-1].length); //(j>=1)
+                }
                 
                 //検索
-                if(val.indexOf(hira_text) != -1){ //検索ヒットの時 (検索テキスト ⊃ hira_text)
+                if(hira_val.indexOf(hira_text) == 0){ //検索ヒットの時 (検索テキスト ⊃ hira_text)
                     if(cnt.from == -1){ //いままでヒットしてない
                         cnt.from = j;
                         cnt.to = j;
@@ -61,22 +60,25 @@ search.addEventListener("input", () => {
                         cnt.to++;
                     }
                     //最後、もしくは完全一致(検索テキスト == hira_text)なら終了
-                    if(j == len-1 || val == hira_text){
-                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i});
+                    if(j == len-1 || hira_val == hira_text){
+                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i, partly:false});
                         break;
                     }
                 } else { //ヒットしない時
-                    //今までヒット -> そこまで追加
-                    if(hira_text.indexOf(val) != -1){ //部分的に一致のとき (検索テキスト ⊂ hira_text)
+                    //部分的に一致のとき (検索テキスト ⊂ hira_text) -> 含めて終了
+                    if(hira_text.indexOf(hira_val) == 0){
                         if(cnt.from == -1){ //いままでヒットしてない
                             cnt.from = j;
                             cnt.to = j;
                         } else { //連続ヒット
                             cnt.to++;
                         }
+                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i, partly:true});
+                        break;
                     }
-                    if(cnt.from != -1){ //今までにヒットしている時
-                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i});
+                    //今までヒット -> 終了
+                    if(cnt.from != -1){
+                        hit.push({text: text, from: cnt.from, to:cnt.to, i:i, partly:true});
                         break;
                     }
                 }
@@ -84,8 +86,8 @@ search.addEventListener("input", () => {
         }
     }
     
-    //関連順に並び替え
-    hit.sort((a, b) => (b.to-b.from) - (a.to-a.from));
+    //関連順に並び替え(部分的でない場合加点)
+    hit.sort((a, b) => (b.to-b.from+(b.partly?0:1)) - (a.to-a.from+(a.partly?0:1)));
     //追加
     hit.forEach(res =>{
         const {text,from,to,i} = res;
