@@ -472,9 +472,9 @@ window.addEventListener("keydown",(e)=>{
         }
     } else {
         if(key == "1"){
-            del();
+            if(view_cnt != -1) del();
         } else if(key == "2"){
-            spotSerect();
+            if(view_cnt != -1) spotSerect();
         } else if(key == "3"){
             better_view();
         } else if(key == "4"){
@@ -1184,11 +1184,20 @@ function move_camera(){ //3dの時のみ実行
             </div>
 
             <div id='spotviewer'>
-                <div class="content" style="background-image: url(./images/link01.png); margin-left: 1%;" onclick="street_move(0), spotSerect()"><div class="cnts">体育館</div></div>
-                <div class="content" style="background-image: url(./images/link02.png)" onclick="street_move(56), spotSerect()"><div class="cnts">食堂</div></div>
-                <div class="content" style="background-image: url(./images/link03.png)" onclick="street_move(58), spotSerect()"><div class="cnts">食堂</div></div>
-                <div class="content" style="background-image: url(./images/link04.png)" onclick="street_move(65), spotSerect()"><div class="cnts">体育館</div></div>
-                <div class="content" style="background-image: url(./images/link05.png)" onclick="street_move(64), spotSerect()"><div class="cnts">講堂</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail1.png); margin-left: 1%;" onclick="street_move(0), spotSerect()"><div class="cnts">体育館</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail2.png)" onclick="street_move(56), spotSerect()"><div class="cnts">食堂</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail3.png)" onclick="street_move(22), spotSerect()"><div class="cnts">渡り廊下(東)</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail4.png)" onclick="street_move(23), spotSerect()"><div class="cnts">渡り廊下(西)</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail5.png)" onclick="street_move(62), spotSerect()"><div class="cnts">中庭</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail6.png)" onclick="street_move(67), spotSerect()"><div class="cnts">校門</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail7.png)" onclick="street_move(2), spotSerect()"><div class="cnts">下駄箱</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail8.png)" onclick="street_move(9), spotSerect()"><div class="cnts">南校舎二階</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail9.png)" onclick="street_move(15), spotSerect()"><div class="cnts">南校舎三階</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail10.png)" onclick="street_move(21), spotSerect()"><div class="cnts">南校舎四階</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail11.png)" onclick="street_move(25), spotSerect()"><div class="cnts">北校舎一階</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail12.png)" onclick="street_move(30), spotSerect()"><div class="cnts">北校舎二階</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail13.png)" onclick="street_move(35), spotSerect()"><div class="cnts">北校舎三階</div></div>
+                <div class="content" style="background-image: url(./images/thumb_nail/thumb_nail14.png)" onclick="street_move(40), spotSerect()"><div class="cnts">北校舎四階</div></div>
             </div>
 
             <div class="modep" style="display: none"></div>
