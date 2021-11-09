@@ -175,7 +175,7 @@ else guide_button_text.innerHTML = "操作方法(G)";
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('skyblue');
+scene.background = new THREE.Color("#66CCFF");
 
 //校舎を全部入れるグループ
 scene.name = undefined;
@@ -185,70 +185,82 @@ const building_offset = new THREE.Vector3(120,0,-80); //グループをずらす
 building_group.position.add(building_offset);
 
 //カメラ
-const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1000);
+const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1500);
 let camera_target = building_offset.clone().add(new THREE.Vector3(0,100,80));
 camera.position.copy(camera_target.clone().add(new THREE.Vector3(0,0,0.01)));
 scene.add(camera);
 
-//地面
+//木
 {
-    const planeSize = 1024;
-
+    const size = 1664;
     //画像
-    const texture = new THREE.TextureLoader().load('./images/grass.png');
+    const texture = new THREE.TextureLoader().load('./images/trees.png');
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.magFilter = THREE.LinearMipmapLinearFilter;
-    //planeSize/2回リピート
-    const repeats = planeSize / 64;
-    texture.repeat.set(repeats, repeats);
+    texture.repeat.set(size/128, size/128);
 
-    //平面のジオメトリ
-    const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+    //円のジオメトリ
+    const circle = new THREE.CircleGeometry(size/2, 64);
     //マテリアル
     const planeMat = new THREE.MeshPhongMaterial({
         map: texture,
-        side: THREE.DoubleSide //両面描画
+        shininess: 0
     });
     //合成してメッシュ
-    const mesh = new THREE.Mesh(planeGeo, planeMat);
+    const mesh = new THREE.Mesh(circle, planeMat);
     mesh.rotation.x = Math.PI * -.5;
-    mesh.position.y -= 4.0;
+    mesh.position.y -= 8;
+    //sceneに追加
+    scene.add(mesh);
+}
+
+//地面
+{
+    const size = 1024;
+    //画像
+    const texture = new THREE.TextureLoader().load('./images/ground.png');
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.magFilter = THREE.LinearMipmapLinearFilter;
+    texture.repeat.set(size/128, size/128);
+
+    //円のジオメトリ
+    const circle = new THREE.CircleGeometry(size/2, 64);
+    //マテリアル
+    const planeMat = new THREE.MeshPhongMaterial({
+        map: texture,
+        shininess: 0
+    });
+    //合成してメッシュ
+    const mesh = new THREE.Mesh(circle, planeMat);
+    mesh.rotation.x = Math.PI * -.5;
+    mesh.position.y -= 4;
     //sceneに追加
     scene.add(mesh);
 }
 
 //半球光源 追加
 {
-    const skyColor = 0xB1E1FF;  // light blue
-    const groundColor = 0xcd853f;  // brownish orange
-    const intensity = 0.7;
-    const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+    const light = new THREE.HemisphereLight(0xB1E1FF, 0xcd853f, 0.7);
     scene.add(light);
 }
 
 //平行光源 追加
 {
-    const color = 0xFFFFFF;
-    const intensity = 0.4;
-    const light1 = new THREE.DirectionalLight(color, intensity);
-    light1.position.set(5, 10, 2);
+    const light1 = new THREE.DirectionalLight(0xFFFFFF, 0.8);
+    light1.position.set(0, 1, 0);
     scene.add(light1);
-    const light2 = new THREE.DirectionalLight(color, intensity);
-    light2.position.set(-5, 10, -2);
-    scene.add(light2);
 }
 
-//外側の球
-const sphere_r = 400; //移動判定用変数
+//環境光源
 {
-    const geometry = new THREE.SphereGeometry(sphere_r, 64, 64);
-    geometry.scale(-1, 1, 1);
-    const texture = new THREE.TextureLoader().load('./images/sky.JPG');
-    const material =  new THREE.MeshLambertMaterial({map: texture});
-    const sphere = new THREE.Mesh( geometry, material);
-    scene.add( sphere );
+    const light = new THREE.AmbientLight( 0x404040, 0.3); // soft white light
+    scene.add( light );
 }
+
+//移動制限の球の半径
+const sphere_r = 400;
 /*↑____________________________ここまで3d用scene__________________________________________________*/
 
 /*↓----------------------------ストリートビュー用のscene作成------------------------------------------*/
@@ -305,7 +317,7 @@ function create_controls(cam,elem){
     return controls;
 }
 const controls_orbit = create_controls(camera,element); //control 作成
-    controls_orbit.maxPolarAngle = Math.PI - 0.01; //真下・真上防止
+    controls_orbit.maxPolarAngle = Math.PI*0.75; //真下・真上防止
     controls_orbit.minPolarAngle = 0.01;
 
 const controls_pointer = new PointerLockControls(camera, element);
@@ -772,8 +784,8 @@ window.change_mode = (async () =>{
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     //テキスト
-    if(street_mode === 1) el.innerHTML = "通常モード";
-    else el.innerHTML = "音展モード"
+    if(street_mode === 1) el.innerHTML = "通常画像";
+    else el.innerHTML = "音展画像含む"
     // cur = 1; //テスト用
 
     if(street_mode == 1 || posi_line[cur][3] == 1){
