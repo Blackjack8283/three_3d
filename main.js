@@ -156,12 +156,14 @@ guide_button.addEventListener("pointerdown", ()=>{
     setting_button.style.display = "none";
 });
 guide_close.addEventListener("pointerdown", ()=>{
+    release_check();
     guide.style.display = "none";
     guide_button.style.display = "block";
     setting_button.style.display = "block";
 });
 guide_content.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
 guide_background.addEventListener("pointerdown", ()=>{
+    release_check();
     guide.style.display = "none";
     guide_button.style.display = "block";
     setting_button.style.display = "block";
@@ -212,6 +214,7 @@ setting_button.addEventListener("pointerdown", ()=>{
     setting_button.style.display = "none";
 });
 setting_close.addEventListener("pointerdown", ()=>{
+    release_check();
     setting.style.display = "none";
     guide_button.style.display = "block";
     setting_button.style.display = "block";
@@ -454,6 +457,8 @@ const controls_orbit = create_controls(camera,element); //control 作成
     controls_orbit.minPolarAngle = 0.01;
 
 const controls_pointer = new PointerLockControls(camera, element);
+    controls_pointer.maxPolarAngle = Math.PI-0.01; //真下・真上防止
+    controls_pointer.minPolarAngle = Math.PI*0.25;
 
 let controls = controls_orbit;
 
@@ -463,6 +468,28 @@ const street_controls_orbit = create_controls(street_camera,element);
 const street_controls_pointer =  new PointerLockControls(street_camera, element);
 
 let street_controls = street_controls_orbit;
+
+function onMouseMove(event){
+    let euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
+    const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+	if(mode == "3d") euler.setFromQuaternion( camera.quaternion );
+    else euler.setFromQuaternion( street_camera.quaternion );
+
+    let num;
+    if(mode == "3d") num = controls_orbit.rotateSpeed / 0.4;
+    else num = street_controls_orbit.rotateSpeed / 0.4;
+
+	euler.y -= movementX * 0.002*(num-1);
+	euler.x -= movementY * 0.002*(num-1);
+
+	if(mode == "3d") euler.x = Math.max( Math.PI/2 - controls_pointer.maxPolarAngle, Math.min( Math.PI/2 - controls_pointer.minPolarAngle, euler.x ) );
+    else euler.x = Math.max( Math.PI/2 - street_controls_pointer.maxPolarAngle, Math.min( Math.PI/2 - street_controls_pointer.minPolarAngle, euler.x ) );
+
+	if(mode == "3d") camera.quaternion.setFromEuler( euler );
+    else street_camera.quaternion.setFromEuler( euler );
+}
 
 stage.appendChild(element);
 
@@ -572,6 +599,19 @@ document.addEventListener("pointerlockchange", ()=>{
     if(document.pointerLockElement != element && locked) release_pointer();
 });
 
+//guideやsettingをみるときにpointer解放
+let release_flag = false;
+function release_check(){
+    if(guide.style.display == "none" && setting.style.display == "none"){
+        if(!locked) return;
+        release_pointer();
+        release_flag = true;
+    } else if(release_flag){
+        lock_pointer();
+        release_flag = false;
+    }
+}
+
 //localStrage 反映
 const ls_keys = ["fov","speed","sensitivity","reverse_3d","reverse_street","visit"];
 for(let i = 0; i < ls_keys.length; i++) {
@@ -590,11 +630,11 @@ for(let i = 0; i < ls_keys.length; i++) {
             setting_button.style.display = "none";
         } 
     } else {
-        if(key == "fov") change_fov(val);
-        if(key == "speed") change_speed(val);
-        if(key == "sensitivity") change_sensitivity(val);
-        if(key == "reverse_3d") reverse_3d(val);
-        if(key == "reverse_street") reverse_street(val);
+        if(key == "fov") change_fov(Number(val));
+        if(key == "speed") change_speed(Number(val));
+        if(key == "sensitivity") change_sensitivity(Number(val));
+        if(key == "reverse_3d") reverse_3d(val=="true" ? true : false);
+        if(key == "reverse_street") reverse_street(val=="true" ? true : false);
         if(key == "visit") localStorage.setItem("visit", Number(val)+1);
     }
 }
@@ -606,10 +646,17 @@ window.addEventListener("keydown",(e)=>{
     const key = e.key;
     //general
     if(key == "m" || key == "M"){
+        if(guide.style.display != "none" || setting.style.display != "none") return;
         m_flag = true; //Escapeと区別のため
-        if(locked) release_pointer();
-        else lock_pointer();
+        if(locked){
+            release_pointer();
+            element.removeEventListener( 'mousemove', onMouseMove );
+        } else {
+            lock_pointer();
+            element.addEventListener( 'mousemove', onMouseMove );
+        } 
     } else if(key == "g" || key == "G"){
+        release_check();
         if(guide.style.display == "none"){
             if(setting.style.display == "none"){
                 guide.style.display = "block";
@@ -622,6 +669,7 @@ window.addEventListener("keydown",(e)=>{
             setting_button.style.display = "block";
         } 
     } else if(key == "p" || key == "P"){
+        release_check();
         if(setting.style.display == "none"){
             if(guide.style.display == "none"){
                 setting.style.display = "block";
@@ -634,6 +682,11 @@ window.addEventListener("keydown",(e)=>{
             setting_button.style.display = "block";
         }
     } else if(key == "Escape"){
+        if(release_flag){
+            setTimeout(() => {
+                if(guide.style.display == "none" && setting.style.display == "none") lock_pointer(); 
+            }, 200);
+        }
         if(guide.style.display == "block"){
             guide.style.display = "none";
             guide_button.style.display = "block";
@@ -826,7 +879,7 @@ window.del = () => {
             .sub(new THREE.Vector3(0.01*Math.cos(theta),0,-0.01*Math.sin(theta)))
         );
     } else {
-        camera.position.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]).add(building_group));
+        camera.position.copy(new THREE.Vector3(posi_line[cur][0],posi_line[cur][1],posi_line[cur][2]).add(building_offset));
         const _vector = new THREE.Vector3();
         _vector.setFromMatrixColumn( street_camera.matrix, 0 );
         const forward = _vector.crossVectors( street_camera.up, _vector );
