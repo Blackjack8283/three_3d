@@ -150,10 +150,141 @@ const guide_background = document.getElementById("guide_background");
 const policy_text = document.getElementById("policy_text");
 const guide_button_text = document.getElementById("guide_button_text");
 const guide = document.getElementById("guide");
-guide_button.addEventListener("pointerdown", ()=>{ guide.style.display = "block"});
-guide_close.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
+guide_button.addEventListener("pointerdown", ()=>{
+    guide.style.display = "block";
+    guide_button.style.display = "none";
+    setting_button.style.display = "none";
+});
+guide_close.addEventListener("pointerdown", ()=>{
+    guide.style.display = "none";
+    guide_button.style.display = "block";
+    setting_button.style.display = "block";
+});
 guide_content.addEventListener("pointerdown", (e)=>{ e.stopPropagation(); });
-guide_background.addEventListener("pointerdown", ()=>{ guide.style.display = "none" });
+guide_background.addEventListener("pointerdown", ()=>{
+    guide.style.display = "none";
+    guide_button.style.display = "block";
+    setting_button.style.display = "block";
+});
+
+//設定
+container.insertAdjacentHTML("afterbegin",`
+    <div id="setting_button">
+        <div id="setting_button_text"></div>
+    </div>
+    <div id="setting" style="display:none;">
+        <div id="setting_background">
+            <div class="setting_content">
+                視野<input type="range" id="fov" name="speed" min="30" max="110" value="70">
+                <div id="fov_cur">70</div>
+            </div>
+            <div class="setting_content">
+                移動速度<input type="range" id="speed" name="speed" min="50" max="200" value="100">
+                <div id="speed_cur">100%</div>
+            </div>
+            <div class="setting_content">
+                感度<input type="range" id="sensitivity" name="speed" min="1" max="500" value="100">
+                <div id="sensitivity_cur">100%</div>
+            </div>
+            <div class="setting_content">
+                <input type="checkbox" id="reverse_3d">
+                <label for="reverse_3d">視点の動き反転(3Dモデルが見える時)</label>
+                <input type="checkbox" id="reverse_street">
+                <label for="reverse_street">視点の動き反転(ストリートビュー)</label>
+            </div>
+            <div id="setting_reset">
+                <div>リセット</div>
+            </div>
+            <div id="setting_close">
+                <div>閉じる</div>
+            </div>
+        </div>
+    </div>
+`);
+const setting_button = document.getElementById("setting_button");
+const setting_reset = document.getElementById("setting_reset");
+const setting_close = document.getElementById("setting_close");
+const setting_button_text = document.getElementById("setting_button_text");
+const setting = document.getElementById("setting");
+setting_button.addEventListener("pointerdown", ()=>{
+    setting.style.display = "block";
+    guide_button.style.display = "none";
+    setting_button.style.display = "none";
+});
+setting_close.addEventListener("pointerdown", ()=>{
+    setting.style.display = "none";
+    guide_button.style.display = "block";
+    setting_button.style.display = "block";
+});
+//リセット
+setting_reset.addEventListener("pointerdown", ()=>{
+    localStorage.setItem("fov", 70);
+    localStorage.setItem("speed", 100);
+    localStorage.setItem("sensitivity", 100);
+    localStorage.setItem("reverse_3d", false);
+    localStorage.setItem("reverse_street", false);
+    change_fov(70);
+    change_speed(100);
+    change_sensitivity(100);
+    reverse_3d(false);
+    reverse_street(false);
+});
+
+//視野
+document.getElementById("fov").addEventListener("input", (e)=>{ change_fov(e.target.value); });
+function change_fov(val){
+    document.getElementById("fov_cur").innerHTML = val;
+    document.getElementById("fov").value = val;
+    camera.fov = val;
+    camera.updateProjectionMatrix();
+    street_camera.fov = val;
+    street_camera.updateProjectionMatrix();
+    localStorage.setItem("fov", val);
+}
+
+//移動速度
+let speed_setting = 1;
+document.getElementById("speed").addEventListener("input", (e)=>{ change_speed(e.target.value); });
+function change_speed(val){
+    document.getElementById("speed_cur").innerHTML = val+"%"; 
+    document.getElementById("speed").value = val;
+    speed_setting = val/100;
+    localStorage.setItem("speed", val);
+}
+
+//感度
+document.getElementById("sensitivity").addEventListener("input", (e)=>{ change_sensitivity(e.target.value); });
+function change_sensitivity(val){
+    document.getElementById("sensitivity_cur").innerHTML = val+"%";
+    document.getElementById("sensitivity").value = val;
+    controls_orbit.rotateSpeed = controls_orbit.rotateSpeed>0 ? 0.4 * (val / 100) : -0.4 * (val / 100);
+    street_controls_orbit.rotateSpeed = street_controls_orbit.rotateSpeed>0 ? 0.4 * (val / 100) : -0.4 * (val / 100);
+    localStorage.setItem("sensitivity", val);
+}
+
+//反転(3D)
+document.getElementById("reverse_3d").addEventListener("input", (e)=>{ reverse_3d(e.target.checked); });
+function reverse_3d(val){
+    if(val){ //反転あり
+        controls_orbit.rotateSpeed = controls_orbit.rotateSpeed>0 ? -controls_orbit.rotateSpeed : controls_orbit.rotateSpeed;
+    } else { //反転なし
+        controls_orbit.rotateSpeed = controls_orbit.rotateSpeed<0 ? -controls_orbit.rotateSpeed : controls_orbit.rotateSpeed;
+    }
+    document.getElementById("reverse_3d").checked = val;
+    localStorage.setItem("reverse_3d", val);
+}
+
+//反転(street)
+document.getElementById("reverse_street").addEventListener("input", (e)=>{ reverse_street(e.target.checked); });
+function reverse_street(val){
+    if(val){ //反転あり
+        street_controls_orbit.rotateSpeed = street_controls_orbit.rotateSpeed>0 ? -street_controls_orbit.rotateSpeed : street_controls_orbit.rotateSpeed;
+    } else { //反転なし
+        street_controls_orbit.rotateSpeed = street_controls_orbit.rotateSpeed<0 ? -street_controls_orbit.rotateSpeed : street_controls_orbit.rotateSpeed;
+    }
+    document.getElementById("reverse_street").checked = val;
+    localStorage.setItem("reverse_street", val);
+}
 
 //元のページに戻るボタン
 container.insertAdjacentHTML("afterbegin",`
@@ -171,7 +302,8 @@ let quality = user_phone ? 0 : 1;
 
 if(user_phone) guide_button_text.innerHTML = "操作方法";
 else guide_button_text.innerHTML = "操作方法(G)";
-
+if(user_phone) setting_button_text.innerHTML = "設定";
+else setting_button_text.innerHTML = "設定(P)";
 
 /* ↓------------------------------ 3dモデル用のscene作成-------------------------------------------*/
 const scene = new THREE.Scene();
@@ -189,6 +321,7 @@ const camera = new THREE.PerspectiveCamera(75, width/height, 0.01, 1500);
 let camera_target = building_offset.clone().add(new THREE.Vector3(0,100,80));
 camera.position.copy(camera_target.clone().add(new THREE.Vector3(0,0,0.01)));
 scene.add(camera);
+camera.fov = 70;
 
 //木
 {
@@ -242,7 +375,7 @@ scene.add(camera);
 
 //半球光源 追加
 {
-    const light = new THREE.HemisphereLight(0xB1E1FF, 0xcd853f, 0.7);
+    const light = new THREE.HemisphereLight(0xB1E1FF, 0xdeb887, 0.7);
     scene.add(light);
 }
 
@@ -439,19 +572,80 @@ document.addEventListener("pointerlockchange", ()=>{
     if(document.pointerLockElement != element && locked) release_pointer();
 });
 
+//localStrage 反映
+const ls_keys = ["fov","speed","sensitivity","reverse_3d","reverse_street","visit"];
+for(let i = 0; i < ls_keys.length; i++) {
+    let key = ls_keys[i];
+    const val = localStorage.getItem(key);
+    if(val == null){
+        if(key == "fov") localStorage.setItem("fov", 70);
+        if(key == "speed") localStorage.setItem("speed", 100);
+        if(key == "sensitivity") localStorage.setItem("sensitivity", 100);
+        if(key == "reverse_3d") localStorage.setItem("reverse_3d", false);
+        if(key == "reverse_street") localStorage.setItem("reverse_street", false);
+        if(key == "visit"){
+            localStorage.setItem("visit", 1);
+            guide.style.display = "block";
+            guide_button.style.display = "none";
+            setting_button.style.display = "none";
+        } 
+    } else {
+        if(key == "fov") change_fov(val);
+        if(key == "speed") change_speed(val);
+        if(key == "sensitivity") change_sensitivity(val);
+        if(key == "reverse_3d") reverse_3d(val);
+        if(key == "reverse_street") reverse_street(val);
+        if(key == "visit") localStorage.setItem("visit", Number(val)+1);
+    }
+}
+
 //キー操作
 let key_flag = [false,false,false,false,false,false,false];
 window.addEventListener("keydown",(e)=>{
     if(focused) return;
     const key = e.key;
+    //general
     if(key == "m" || key == "M"){
         m_flag = true; //Escapeと区別のため
         if(locked) release_pointer();
         else lock_pointer();
     } else if(key == "g" || key == "G"){
-        if(guide.style.display == "none") guide.style.display = "block";
-        else guide.style.display = "none";
+        if(guide.style.display == "none"){
+            if(setting.style.display == "none"){
+                guide.style.display = "block";
+                guide_button.style.display = "none";
+                setting_button.style.display = "none";
+            }
+        } else {
+            guide.style.display = "none";
+            guide_button.style.display = "block";
+            setting_button.style.display = "block";
+        } 
+    } else if(key == "p" || key == "P"){
+        if(setting.style.display == "none"){
+            if(guide.style.display == "none"){
+                setting.style.display = "block";
+                guide_button.style.display = "none";
+                setting_button.style.display = "none";
+            }
+        } else {
+            setting.style.display = "none";
+            guide_button.style.display = "block";
+            setting_button.style.display = "block";
+        }
+    } else if(key == "Escape"){
+        if(guide.style.display == "block"){
+            guide.style.display = "none";
+            guide_button.style.display = "block";
+            setting_button.style.display = "block";
+        }
+        if(setting.style.display == "block"){
+            setting.style.display = "none";
+            guide_button.style.display = "block";
+            setting_button.style.display = "block";
+        }
     }
+    //3dのみ
     if(mode == "3d"){
         if(key == "w" || key == "W" || key == "ArrowUp"){
             key_flag[0] = true;
@@ -480,9 +674,8 @@ window.addEventListener("keydown",(e)=>{
                     controls.minDistance = 0.01;
                 }
             }
-            if(guide.style.display == "block") guide.style.display = "none";
         }
-    } else {
+    } else { //streetのみ
         if(key == "1"){
             if(view_cnt != -1) del();
         } else if(key == "2"){
@@ -1342,7 +1535,10 @@ function move_camera_target(){
         ocv.normalize().multiplyScalar(len/max);
         dvec.add(forward.clone().multiplyScalar(-ocv.x)).add(right.clone().multiplyScalar(ocv.y));
     }
+    //係数倍
+    dvec.multiplyScalar(speed_setting);
 
+    //移動制限判定
     const t = camera_target.clone().add(dvec);
     const p = camera.position.clone().add(dvec);
     if(t.y < 0.1){
