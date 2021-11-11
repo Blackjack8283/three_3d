@@ -1215,22 +1215,24 @@ const groups_len = urls.length;
 //青ボタン生成
 function generate_buttons(number){ //3dモデル操作中のみ実行
     let array;
-    if(0 <= number && number <= 3){
+    if(0 <= number && number <= 3){ //1~3:南校舎 4:南校舎屋根
         array = posi[0][number];
-    } else if(5 <= number && number <= 8){
+    } else if(5 <= number && number <= 8){ //1~3:北校舎 4:北校舎屋根
         array = posi[1][number-5];
-    } else if(number == 10){
+    } else if(number == 10){ //10:東橋 11:東橋屋根
         array = posi[2][number-10];
-    } else if(number == 12){
+    } else if(number == 12){ //12:西橋 11:西橋屋根
         array = posi[3][number-12];
-    } else if(14 <= number && number <= 15){
+    } else if(14 <= number && number <= 15){ //14~15:食堂 16:食堂の屋根
         array = posi[4][number-14];
-    } else if(number == 17){
-        array = posi[4][number-17];
-    } else if(number == 19){
-        array = posi[4][number-19];
+    } else if(number == 17){ //17:体育館 18:体育館屋根
+        array = posi[5][number-17];
+    } else if(number == 19){ //19:講堂 20:講堂屋根
+        array = posi[6][number-19];
+    } else if(number == 21){ //21:地面
+        array = posi[7][number-21];
     } else return;
-
+    
     for(let vec of array){
         const geometry = new THREE.SphereGeometry(3, 16, 16);
         const material =  new THREE.MeshLambertMaterial({color: 0x00bfff, transparent: true, opacity: 0.5});
