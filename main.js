@@ -562,7 +562,10 @@ element.addEventListener("pointerup", (e) => {
 
 let m_flag = false;
 function lock_pointer(){
-    if(turn_flag) return;
+    if(turn_flag){
+        release_flag = false;
+        return;
+    }
     m_flag = false;
     locked = true;
     controls = controls_pointer;
@@ -685,7 +688,7 @@ window.addEventListener("keydown",(e)=>{
         if(release_flag){
             setTimeout(() => {
                 if(guide.style.display == "none" && setting.style.display == "none") lock_pointer(); 
-            }, 200);
+            }, 100);
         }
         if(guide.style.display == "block"){
             guide.style.display = "none";
