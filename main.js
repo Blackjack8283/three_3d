@@ -194,6 +194,14 @@ container.insertAdjacentHTML("afterbegin",`
                 <input type="checkbox" id="reverse_street">
                 <label for="reverse_street">視点の動き反転(ストリートビュー)</label>
             </div>
+            <div class="setting_content">
+                <input type="checkbox" id="shadow">
+                <label for="shadow">陰を表示(再読み込みが必要です)</label>
+            </div>
+            <div class="setting_content">
+                影の細かさ(再読み込みが必要です)<input type="range" id="shadow_size" name="speed" min="1" max="8" value="3">
+                <div id="shadow_size_cur">3</div>
+            </div>
             <div id="setting_reset">
                 <div>リセット</div>
             </div>
@@ -226,11 +234,15 @@ setting_reset.addEventListener("pointerdown", ()=>{
     localStorage.setItem("sensitivity", 100);
     localStorage.setItem("reverse_3d", false);
     localStorage.setItem("reverse_street", false);
+    localStorage.setItem("shadow", false);
+    localStorage.setItem("shadow_size", 3);
     change_fov(70);
     change_speed(100);
     change_sensitivity(100);
     reverse_3d(false);
     reverse_street(false);
+    change_shadow(false);
+    change_shadow_size(3);
 });
 
 //視野
@@ -288,6 +300,26 @@ function reverse_street(val){
     document.getElementById("reverse_street").checked = val;
     localStorage.setItem("reverse_street", val);
 }
+
+//影の有無
+document.getElementById("shadow").addEventListener("input", (e)=>{ change_shadow(e.target.checked); });
+function change_shadow(val){
+    if(val) renderer.shadowMap.enabled = true; //あべこべ
+    else renderer.shadowMap.enabled = false;
+    document.getElementById("shadow").checked = val;
+    localStorage.setItem("shadow", val);
+}
+
+//影の細かさ
+document.getElementById("shadow_size").addEventListener("input", (e)=>{ change_shadow_size(e.target.value); });
+function change_shadow_size(val){
+    document.getElementById("shadow_size_cur").innerHTML = val; 
+    document.getElementById("shadow_size").value = val;
+    light1.shadow.mapSize.width = Math.pow(2,val+6);
+    light1.shadow.mapSize.height = Math.pow(2,val+6);
+    localStorage.setItem("shadow_size", val);
+}
+
 
 //元のページに戻るボタン
 container.insertAdjacentHTML("afterbegin",`
@@ -372,6 +404,7 @@ camera.fov = 70;
     const mesh = new THREE.Mesh(circle, planeMat);
     mesh.rotation.x = Math.PI * -.5;
     mesh.position.y -= 4;
+    mesh.receiveShadow = true;
     //sceneに追加
     scene.add(mesh);
 }
@@ -383,11 +416,18 @@ camera.fov = 70;
 }
 
 //平行光源 追加
-{
-    const light1 = new THREE.DirectionalLight(0xFFFFFF, 0.8);
-    light1.position.set(0, 1, 0);
-    scene.add(light1);
-}
+const light1 = new THREE.DirectionalLight(0xFFFFFF, 0.8);
+light1.position.set(400, 400, 0);
+light1.castShadow = true;
+light1.shadow.camera.right = 400;
+light1.shadow.camera.left = -400;
+light1.shadow.camera.top = 400;
+light1.shadow.camera.bottom = -400;
+light1.shadow.camera.far = 1000;
+light1.shadow.mapSize.width = 2048;
+light1.shadow.mapSize.height = 2048;
+
+scene.add(light1);
 
 //環境光源
 {
@@ -432,7 +472,7 @@ const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(width, height);
 renderer.setClearColor({color: 0x000000});
-// renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = false;
 const element = renderer.domElement;
 
 function create_controls(cam,elem){
@@ -616,7 +656,7 @@ function release_check(){
 }
 
 //localStrage 反映
-const ls_keys = ["fov","speed","sensitivity","reverse_3d","reverse_street","visit"];
+const ls_keys = ["fov","speed","sensitivity","reverse_3d","reverse_street","visit","shadow","shadow_size"];
 for(let i = 0; i < ls_keys.length; i++) {
     let key = ls_keys[i];
     const val = localStorage.getItem(key);
@@ -631,7 +671,9 @@ for(let i = 0; i < ls_keys.length; i++) {
             guide.style.display = "block";
             guide_button.style.display = "none";
             setting_button.style.display = "none";
-        } 
+        }
+        if(key == "shadow") localStorage.setItem("shadow", false);
+        if(key == "shadow_size") localStorage.setItem("shadow_size", 3);
     } else {
         if(key == "fov") change_fov(Number(val));
         if(key == "speed") change_speed(Number(val));
@@ -639,6 +681,8 @@ for(let i = 0; i < ls_keys.length; i++) {
         if(key == "reverse_3d") reverse_3d(val=="true" ? true : false);
         if(key == "reverse_street") reverse_street(val=="true" ? true : false);
         if(key == "visit") localStorage.setItem("visit", Number(val)+1);
+        if(key == "shadow") change_shadow(val=="true" ? true : false);
+        if(key == "shadow_size") change_shadow_size(Number(val));
     }
 }
 
@@ -1131,11 +1175,27 @@ const max_alt = 100;
 let state = "closed";
 
 //オブジェクト読み込み
-function load_obj(mtl_file_name, obj_file_name){
-    if(mtl_file_name == undefined){ //マテリアルないとき
+const paint_obj = true;
+const mtl_white = new THREE.MeshStandardMaterial({ color: 0xCCCCCC });
+const mtl_red = new THREE.MeshStandardMaterial({ color: 0xB04741 });
+function load_obj(mtl_file_name, obj_file_name,i){
+    if(mtl_file_name == undefined){ //マテリアルファイルないとき
         return new Promise((resolve,reject) => {
             const objLoader = new OBJLoader();
             objLoader.load("./models/koyo/" + obj_file_name, (root) => {
+                root.castShadow = true;
+                root.receiveShadow = true;
+                if(paint_obj){ //手動でマテリアル追加
+                    for(let j = 0; j < root.children.length; j++){
+                        root.children[j].castShadow = true;
+                        root.children[j].receiveShadow = true;
+                        if(i == 21){
+                            root.children[j].material = mtl_red;
+                        } else{
+                            root.children[j].material = mtl_white;
+                        }
+                    }
+                }
                 resolve(root);
             });
         });
@@ -1183,7 +1243,7 @@ const groups_len = urls.length;
 
 (async () => {
     for(let i = 0; i < groups_len; i++){
-        await load_obj(urls[i][0],urls[i][1]).then((root) => {
+        await load_obj(urls[i][0],urls[i][1],i).then((root) => {
             groups[i] = root;
             groups[i].name = i; //番号
             groups[i].scale.set(3,3,3);
@@ -1204,7 +1264,6 @@ const groups_len = urls.length;
             } else if(i == 21){
                 groups[i].part_of = "ground";
             }
-
             groups[i].ori_position = groups[i].position.clone();
             building_group.add(groups[i]);
         });
@@ -1232,10 +1291,10 @@ function generate_buttons(number){ //3dモデル操作中のみ実行
     } else if(number == 21){ //21:地面
         array = posi[7][number-21];
     } else return;
-    
+
     for(let vec of array){
         const geometry = new THREE.SphereGeometry(3, 16, 16);
-        const material =  new THREE.MeshLambertMaterial({color: 0x00bfff, transparent: true, opacity: 0.5});
+        const material =  new THREE.MeshLambertMaterial({color: 0x00bfff, transparent: true, opacity: 0.9});
         const mesh = new THREE.Mesh( geometry, material);
         //sceneに追加
         mesh.position.copy(new THREE.Vector3(vec[0],vec[1],vec[2]));
@@ -1471,6 +1530,12 @@ function move_camera(){ //3dの時のみ実行
         menubar.addEventListener('touchstart', (e) => {
             if (e.touches.length > 1) e.preventDefault();
         }, true);
+        const spotviewer = document.getElementById("spotviewer");
+        spotviewer.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            if (e.deltaX == 0) spotviewer.scrollBy(e.deltaY, 0); //縦ホイール
+            else spotviewer.scrollBy(e.deltaX, 0); //横・斜めホイール
+        });
         return;
     }
     //カメラ移動
