@@ -8,6 +8,14 @@ let width = document.documentElement.clientWidth;
 let height = document.documentElement.clientHeight;
 let container = document.getElementById("container");
 
+let mode = "3d"; //3dモデルかstreet viewか
+let street_mode = -1; //通常モード:1/音展モード:-1
+let locked = false; //pointerlockが有効かどうか
+const user_ios =  /[ \(]iP/.test(navigator.userAgent);
+const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/) ? true : false;
+let quality = user_phone ? 0 : 1;
+let turn_flag = false;
+
 container.insertAdjacentHTML("afterbegin",`
     <div id='stage'></div>
 `);
@@ -211,6 +219,14 @@ container.insertAdjacentHTML("afterbegin",`
         </div>
     </div>
 `);
+if(!user_phone){
+    document.getElementById("setting_background").insertAdjacentHTML("beforeend",`
+        <div class="setting_content">
+            <input type="checkbox" id="lock">
+            <label for="lock">開いた時にマウスをロックしておく</label>
+        </div>
+    `);
+}
 const setting_button = document.getElementById("setting_button");
 const setting_reset = document.getElementById("setting_reset");
 const setting_close = document.getElementById("setting_close");
@@ -236,6 +252,7 @@ setting_reset.addEventListener("pointerdown", ()=>{
     localStorage.setItem("reverse_street", false);
     localStorage.setItem("shadow", false);
     localStorage.setItem("shadow_size", 3);
+    localStorage.setItem("lock", false);
     change_fov(70);
     change_speed(100);
     change_sensitivity(100);
@@ -243,6 +260,7 @@ setting_reset.addEventListener("pointerdown", ()=>{
     reverse_street(false);
     change_shadow(false);
     change_shadow_size(3);
+    change_lock(false);
 });
 
 //視野
@@ -320,6 +338,16 @@ function change_shadow_size(val){
     localStorage.setItem("shadow_size", val);
 }
 
+//マウスロック
+let first_lock = false;
+if(!user_phone) document.getElementById("lock").addEventListener("input", (e)=>{ change_lock(e.target.checked); });
+function change_lock(val){
+    if(user_phone) return;
+    if(val) first_lock = true; //あべこべ
+    else first_lock = false;
+    document.getElementById("lock").checked = val;
+    localStorage.setItem("lock", val);
+}
 
 //元のページに戻るボタン
 container.insertAdjacentHTML("afterbegin",`
@@ -327,13 +355,6 @@ container.insertAdjacentHTML("afterbegin",`
 `);
 const leave_button = document.getElementById("leave_button");
 leave_button.addEventListener("pointerdown", ()=>{ history.back(); });
-
-let mode = "3d"; //3dモデルかstreet viewか
-let street_mode = -1; //通常モード:1/音展モード:-1
-let locked = false; //pointerlockが有効かどうか
-const user_ios =  /[ \(]iP/.test(navigator.userAgent);
-const user_phone = navigator.userAgent.match(/iPhone|Android.+Mobile/) ? true : false;
-let quality = user_phone ? 0 : 1;
 
 if(user_phone) guide_button_text.innerHTML = "操作方法";
 else guide_button_text.innerHTML = "操作方法(G)";
@@ -656,7 +677,7 @@ function release_check(){
 }
 
 //localStrage 反映
-const ls_keys = ["fov","speed","sensitivity","reverse_3d","reverse_street","visit","shadow","shadow_size"];
+const ls_keys = ["fov","speed","sensitivity","reverse_3d","reverse_street","visit","shadow","shadow_size","lock"];
 for(let i = 0; i < ls_keys.length; i++) {
     let key = ls_keys[i];
     const val = localStorage.getItem(key);
@@ -674,6 +695,7 @@ for(let i = 0; i < ls_keys.length; i++) {
         }
         if(key == "shadow") localStorage.setItem("shadow", false);
         if(key == "shadow_size") localStorage.setItem("shadow_size", 3);
+        if(key == "lock") localStorage.setItem("lock", false);
     } else {
         if(key == "fov") change_fov(Number(val));
         if(key == "speed") change_speed(Number(val));
@@ -683,7 +705,16 @@ for(let i = 0; i < ls_keys.length; i++) {
         if(key == "visit") localStorage.setItem("visit", Number(val)+1);
         if(key == "shadow") change_shadow(val=="true" ? true : false);
         if(key == "shadow_size") change_shadow_size(Number(val));
+        if(key == "lock") change_lock(val=="true" ? true : false);
     }
+}
+
+//マウスロックしておく場合(ユーザーの操作が必要らしい)
+if(first_lock && !user_phone){
+    setTimeout(() => {
+        lock_pointer();
+        camera.lookAt(camera.position.clone().add(new THREE.Vector3(0,0,-1)));
+    }, 1000); 
 }
 
 //キー操作
@@ -732,7 +763,7 @@ window.addEventListener("keydown",(e)=>{
         if(release_flag){
             setTimeout(() => {
                 if(guide.style.display == "none" && setting.style.display == "none") lock_pointer(); 
-            }, 100);
+            }, 300);
         }
         if(guide.style.display == "block"){
             guide.style.display = "none";
@@ -1397,7 +1428,6 @@ function click(x,y) {
     }
 }
 
-let turn_flag = false;
 let turn_info; //obj
 
 //move_camera関数のトリガー(計算)(global)
