@@ -199,6 +199,8 @@ container.insertAdjacentHTML("afterbegin",`
             <div class="setting_content">
                 <input type="checkbox" id="reverse_3d">
                 <label for="reverse_3d">視点の動き反転(3Dモデルが見える時)</label>
+            </div>
+            <div class="setting_content">
                 <input type="checkbox" id="reverse_street">
                 <label for="reverse_street">視点の動き反転(ストリートビュー)</label>
             </div>

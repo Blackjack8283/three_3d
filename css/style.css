@@ -6,6 +6,7 @@ body, html {
     touch-action: manipulation;
     -webkit-user-select:none;
     -moz-user-select:none;
+    font-family: serif;
 }
 
 /* 全てを含むコンテナ */
@@ -133,6 +134,9 @@ body, html {
     text-shadow: #000 0 0 10px;
     display: block;
 }
+#leave_button > img {
+    width: 40px;
+}
 
 /* 操作説明 */
 #guide {
@@ -165,15 +169,22 @@ body, html {
     background-color: hsla(0,0%,93.3%,.53333);
     pointer-events: auto;
 }
-#guide_button{
+#guide_button, #setting_button{
     z-index: 10;
-    color: #f5f5f5;
-    text-shadow: #000 0 0 10px;
+    color: rgb(0, 0, 0);
+    box-shadow: 0 0 5px 2px rgb(0, 0, 0);
+    background-color: rgba(200, 200, 200, .8);
+    padding: 0 10px 0;
     display: block;
     position: absolute;
     bottom: -5px;
-    right: 0px;
     line-height: 40px;
+}
+#guide_button{
+    right: 0;
+}
+#setting_button{
+    right: 130px;
 }
 #guide_button, #guide_close div {
     text-align: center;
@@ -242,47 +253,165 @@ body, html {
 #setting_reset {
     /*何とかしてくれーーー*/
     position: absolute;
-    bottom: 10vh;
-    margin: 0 calc(50% - 100px);
-    border: 1px solid #222;
-    width: 200px;
-    height: 50px;
     background-color: hsla(0,0%,93.3%,.53333);
     pointer-events: auto;
 }
-#setting_button{
-    z-index: 10;
-    color: #f5f5f5;
-    text-shadow: #000 0 0 10px;
-    display: block;
-    position: absolute;
-    bottom: -5px;
-    right: 100px;
-    line-height: 40px;
-}
+
 #setting_button, #setting_close div, #setting_reset div {
     text-align: center;
-    margin: 12px;
 }
 .setting_content {
     position: relative;
-    margin: 4vh 10vw;
-    border: 1px transparent solid;
-    width: 80vw;
-    height: 10vh;
     background-color: #fffb;
     box-shadow: 5px 5px #4448;
+    box-sizing: border-box;
+}
+.setting_content > span {
+    display: block;
+    display: grid;
+    align-items: center;
+}
+.setting_content > input[type="range"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: absolute;
+  margin: 0;
+}
+.setting_content > input::-webkit-slider-thumb,  .setting_content > input::-moz-slider-thumb{
+  -webkit-appearance: none;
+  background: blue;
+}
+.setting_content > input[type="checkbox"] {
+  position: absolute;
+}
+.setting_content > div {
+  position: absolute;
+  display: grid;
+  align-items: center;
 }
 #setting_title {
-    margin-top: 1vh;
-    margin-bottom: 6vh;
     width: 100%;
-    height: 5vh;
     text-align: center;
-    font-size: 2em;
     font-weight: bold;
 }
+.setting_content > label {
+  position: absolute;
+  display: grid;
+  align-items: center;
+}
 
+@media(orientation: landscape) {
+    #setting_reset {
+        right: 10vw;
+        border: 1px solid #222;
+        width: 200px;
+        height: 50px;
+        bottom: 10vh;
+    }
+    #setting_button, #setting_close div, #setting_reset div {
+        margin: 12px;
+    }
+    .setting_content {
+        margin: 2vh auto;
+        width: 80vw;
+        height: 8vh;
+        padding: 1vh 10px;
+        font-size: 1.5vw;
+    }
+    .setting_content > span {
+        height: 6vh;
+        width: 30vw;
+    }
+    .setting_content > input[type="range"] {
+        top: 1.5vh;
+        right: 6vw;
+        height: 5vh;
+        width: 40vw;
+    }
+    .setting_content > input::-webkit-slider-thumb, .setting_content > input::-moz-slider-thumb {
+        height: 20px;
+        width: 20px;
+    }
+    .setting_content > input[type="checkbox"] {
+         width: 3vh;
+        height: 3vh;
+        right: 2vw;
+        top: 2vh;
+    }
+    .setting_content > div {
+        right: 2vw;
+        width: 3vw;
+        top: 1.5vh;
+        height: 5vh;
+    }
+    #setting_title {
+        margin-top: 1vh;
+        margin-bottom: 6vh;
+        height: 5vh;
+        font-size: 2em;
+    }
+    .setting_content > label {
+        height: 8vh;
+        left: 10px;
+        top: 0;
+    }
+}
+@media(orientation: portrait) {
+    #setting_reset {
+        right: 10vw;
+        border: 1px solid #222;
+        width: 150px;
+        height: 40px;
+        font-size: 14px;
+    }
+    #setting_button, #setting_close div, #setting_reset div {
+        margin: 12px;
+    }
+    .setting_content {
+        margin: 2vh auto;
+        width: 80vw;
+        height: 6vh;
+        padding: 1vh 10px;
+        font-size: 2.5vw;
+    }
+    .setting_content > span {
+        height: 4vh;
+        width: 30vw;
+    }
+    .setting_content > input[type="range"] {
+        top: 2vh;
+        right: 10vw;
+        height: 2vh;
+        width: 35vw;
+    }
+    .setting_content > input::-webkit-slider-thumb, .setting_content > input::-moz-slider-thumb {
+        height: 1.5vh;
+        width: 1.5vh;
+    }
+    .setting_content > input[type="checkbox"] {
+        width: 2vh;
+        height: 2vh;
+        right: 2vw;
+        top: 2vh;
+    }
+    .setting_content > div {
+        right: 3vw;
+        width: 5vw;
+        top: 1.5vh;
+        height: 3vh;
+    }
+    #setting_title {
+        margin-top: 1vh;
+        margin-bottom: 6vh;
+        height: 5vh;
+        font-size: 2em;
+    }
+    .setting_content > label {
+        height: 6vh;
+        left: 10px;
+        top: 0;
+    }
+}
 /* ストリートビュー左上のバー */
 #spotviewer {
     width: 100%;
